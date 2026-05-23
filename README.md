@@ -4,7 +4,7 @@
 
 **Portaldot Mini Hackathon Online Season 1 Submission**
 
-Live Demo: https://portaldot-playground.vercel.app
+Live Demo: https://portalhouse.vercel.app
 
 ---
 
@@ -86,7 +86,7 @@ netsh interface portproxy add v4tov4 listenport=9944 listenaddress=127.0.0.1 con
 
 ## Demo
 
-- Live: https://portaldot-playground.vercel.app
+- Live: https://portalhouse.vercel.app
 - Video: [link to be added]
 
 ## Roadmap
