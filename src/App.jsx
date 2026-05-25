@@ -10,6 +10,11 @@ import { AiAssistant } from './pages/AiAssistant'
 import { DeployContract } from './pages/DeployContract'
 import './styles/global.css'
 
+const NETWORKS = [
+  { label: 'Local Node (127.0.0.1:9944)', value: 'ws://127.0.0.1:9944' },
+  { label: 'Public Node', value: 'wss://drip-backend-production-8d86.up.railway.app/node' },
+]
+
 function ComingSoon({ title }) {
   return (
     <div style={{ padding: 40, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60vh', gap: 12 }}>
@@ -23,7 +28,8 @@ function ComingSoon({ title }) {
 export default function App() {
   const [activePage, setActivePage] = useState('health')
   const [wallet, setWallet] = useState(null)
-  const chain = useChain()
+  const [rpc, setRpc] = useState('ws://127.0.0.1:9944')
+  const chain = useChain(rpc)
 
   const connectWallet = async () => {
     try {
@@ -67,17 +73,22 @@ export default function App() {
   }
 
   const pageTitle = {
-    health: 'Chain Health', txs: 'Transactions',
-    tokens: 'Token Studio', deploy: 'Deploy Contract',
-    bounty: 'Bounty Board', ai: 'AI Assistant', profile: 'My Profile',
+    health: 'Chain Health', txs: 'Transactions', tokens: 'Token Studio',
+    deploy: 'Deploy Contract', bounty: 'Bounty Board', ai: 'AI Assistant', profile: 'My Profile',
   }
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
       <Sidebar active={activePage} setActive={setActivePage} status={chain.status} wallet={wallet} onConnectWallet={connectWallet} />
       <main style={{ flex: 1, overflowY: 'auto', background: '#0e1117' }}>
-        <div style={{ position: 'sticky', top: 0, zIndex: 10, padding: '14px 24px', background: '#0e1117', borderBottom: '0.5px solid #1e2433', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ fontSize: 15, fontWeight: 600, color: '#e0e2ea' }}>{pageTitle[activePage]}</div>
+        <div style={{ position: 'sticky', top: 0, zIndex: 10, padding: '12px 24px', background: '#0e1117', borderBottom: '0.5px solid #1e2433', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: '#e0e2ea' }}>{pageTitle[activePage]}</div>
+            <select value={rpc} onChange={e => { setRpc(e.target.value); setWallet(null) }}
+              style={{ padding: '4px 8px', background: '#111520', border: '0.5px solid #1e2433', borderRadius: 6, fontSize: 11, color: '#8891a8', outline: 'none', fontFamily: 'JetBrains Mono, monospace', cursor: 'pointer' }}>
+              {NETWORKS.map(n => <option key={n.value} value={n.value}>{n.label}</option>)}
+            </select>
+          </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             {chain.bestBlock && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: '#1a1508', border: '0.5px solid #3d3010', fontSize: 12, fontFamily: 'JetBrains Mono, monospace', color: '#c9a84c' }}>
