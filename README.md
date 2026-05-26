@@ -117,3 +117,28 @@ netsh interface portproxy add v4tov4 listenport=9944 listenaddress=127.0.0.1 con
 ## License
 
 MIT
+
+## For Judges — Testing Guide
+
+### Option 1: Public Node (no setup needed)
+1. Open https://portalhouse.vercel.app
+2. Select **Public Node** from the network dropdown in the topbar
+3. Connect your wallet (Portaldot or Polkadot.js extension)
+4. For POT: ask in Portaldot Discord with your address
+
+### Option 2: Local Node (full experience)
+1. Download node: github.com/portaldotVolunteer/Portaldot-node
+2. Run: `./portaldot_dev --dev --alice --force-authoring --rpc-external --ws-external --rpc-cors all`
+3. Open https://portalhouse.vercel.app → select **Local Node**
+4. Get POT: polkadot.js.org/apps → send from ALICE to your address
+
+### AI Assistant
+1. Get free Groq key at console.groq.com (30 seconds, no credit card)
+2. Open AI Assistant → paste key when prompted
+3. Try: "send 5 POT to [address]" or "create a token called TEST with 1M supply"
+
+### Verified on-chain activity (builder wallet)
+Address: 5EHmLtMFjM93319YfvTf34Q8cLcN8wPScFUfz5bsQc9pn3hm
+- Identity set: quabnation / @quabnation
+- Tokens created: QUAB, QTK, QUB and others
+- POT transfers confirmed on-chain
