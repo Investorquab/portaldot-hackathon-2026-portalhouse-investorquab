@@ -77,13 +77,41 @@ export function encodeUint256(value) {
   return n.toString(16).padStart(64, '0')
 }
 
+// Estimate the gas + cost of deploying this data. Returns bigints.
+export async function estimateDeploy(provider, from, data) {
+  const [gasHex, priceHex] = await Promise.all([
+    provider.request({ method: 'eth_estimateGas', params: [{ from, data }] }),
+    provider.request({ method: 'eth_gasPrice', params: [] }),
+  ])
+  const gas = BigInt(gasHex)
+  const gasPrice = BigInt(priceHex)
+  return { gas, gasPrice, costWei: gas * gasPrice }
+}
+
+export async function getBalanceWei(provider, address) {
+  const hex = await provider.request({ method: 'eth_getBalance', params: [address, 'latest'] })
+  return BigInt(hex)
+}
+
+// 18-decimal wei -> a short human string in tPOT.
+export function formatTpot(wei, dp = 3) {
+  const base = 10n ** 18n
+  const whole = wei / base
+  const frac = ((wei % base) * (10n ** BigInt(dp))) / base
+  return `${whole}.${frac.toString().padStart(dp, '0')}`
+}
+
 // Deploy creation bytecode (+ already-encoded constructor args). Returns tx hash.
+// Sets an explicit gas limit (estimate + 20%) so the wallet doesn't have to
+// estimate it itself (some wallets choke on this chain's large gas values).
 export async function deployBytecode(provider, from, bytecode, encodedArgsHex = '') {
   const data = bytecode + encodedArgsHex
-  return provider.request({
-    method: 'eth_sendTransaction',
-    params: [{ from, data }],
-  })
+  const tx = { from, data }
+  try {
+    const gasHex = await provider.request({ method: 'eth_estimateGas', params: [{ from, data }] })
+    tx.gas = '0x' + ((BigInt(gasHex) * 12n) / 10n).toString(16)
+  } catch { /* let the wallet estimate if the node refuses */ }
+  return provider.request({ method: 'eth_sendTransaction', params: [tx] })
 }
 
 // Poll for the receipt; resolves with the deployed contract address.

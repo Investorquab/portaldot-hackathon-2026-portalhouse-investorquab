@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useChain } from './hooks/useChain'
 import { discoverEvmWallets, connectEvm as evmConnect, ensurePortaldotChain } from './evm/portaldotEvm'
 import { Sidebar } from './components/Sidebar'
@@ -16,12 +16,32 @@ const NETWORKS = [
   { label: 'Local Node (127.0.0.1:9944)', value: 'ws://127.0.0.1:9944' },
 ]
 
+const shortAddr = (a) => (a ? a.slice(0, 6) + '…' + a.slice(-4) : '')
+
+// Top-bar wallet control: a status chip when connected, a connect button otherwise.
+function WalletChip({ label, accent, connected, text, onConnect }) {
+  if (connected) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 20, background: 'var(--bg2)', border: '0.5px solid var(--border)', fontSize: 12, fontFamily: 'JetBrains Mono, monospace', color: accent }}>
+        <span style={{ width: 5, height: 5, borderRadius: '50%', background: accent, display: 'inline-block' }} />
+        {text}
+      </div>
+    )
+  }
+  return (
+    <button onClick={onConnect} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 12px', borderRadius: 20, background: 'transparent', border: `0.5px solid ${accent}55`, fontSize: 12, color: accent, cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
+      <span style={{ width: 5, height: 5, borderRadius: '50%', border: `1px solid ${accent}`, display: 'inline-block' }} />
+      {label}
+    </button>
+  )
+}
+
 function ComingSoon({ title }) {
   return (
     <div style={{ padding: 40, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60vh', gap: 12 }}>
       <div style={{ fontSize: 32 }}>⬡</div>
-      <div style={{ fontSize: 16, fontWeight: 500, color: '#8891a8' }}>{title}</div>
-      <div style={{ fontSize: 13, color: '#4a5266' }}>Coming soon</div>
+      <div style={{ fontSize: 16, fontWeight: 500, color: 'var(--text2)' }}>{title}</div>
+      <div style={{ fontSize: 13, color: 'var(--text4)' }}>Coming soon</div>
     </div>
   )
 }
@@ -31,7 +51,13 @@ export default function App() {
   const [wallet, setWallet] = useState(null)
   const [evmWallet, setEvmWallet] = useState(null)
   const [rpc, setRpc] = useState('wss://test-node-v3.portaldot.dev')
+  const [theme, setTheme] = useState(() => (typeof localStorage !== 'undefined' && localStorage.getItem('ph_theme')) || 'dark')
   const chain = useChain(rpc)
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('light', theme === 'light')
+    try { localStorage.setItem('ph_theme', theme) } catch {}
+  }, [theme])
 
   const connectEvm = async () => {
     try {
@@ -97,27 +123,35 @@ export default function App() {
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-      <Sidebar active={activePage} setActive={setActivePage} status={chain.status} wallet={wallet} onConnectWallet={connectWallet} chainInfo={chain.chainInfo} evmWallet={evmWallet} onConnectEvm={connectEvm} />
-      <main style={{ flex: 1, overflowY: 'auto', background: '#0e1117' }}>
-        <div style={{ position: 'sticky', top: 0, zIndex: 10, padding: '12px 24px', background: '#0e1117', borderBottom: '0.5px solid #1e2433', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <Sidebar active={activePage} setActive={setActivePage} status={chain.status} chainInfo={chain.chainInfo} />
+      <main style={{ flex: 1, overflowY: 'auto', background: 'var(--bg1)' }}>
+        <div style={{ position: 'sticky', top: 0, zIndex: 10, padding: '12px 24px', background: 'var(--bg1)', borderBottom: '0.5px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ fontSize: 15, fontWeight: 600, color: '#e0e2ea' }}>{pageTitle[activePage]}</div>
+            <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>{pageTitle[activePage]}</div>
             <select value={rpc} onChange={e => { setRpc(e.target.value); setWallet(null) }}
-              style={{ padding: '4px 8px', background: '#111520', border: '0.5px solid #1e2433', borderRadius: 6, fontSize: 11, color: '#8891a8', outline: 'none', fontFamily: 'JetBrains Mono, monospace', cursor: 'pointer' }}>
+              style={{ padding: '4px 8px', background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: 6, fontSize: 11, color: 'var(--text2)', outline: 'none', fontFamily: 'JetBrains Mono, monospace', cursor: 'pointer' }}>
               {NETWORKS.map(n => <option key={n.value} value={n.value}>{n.label}</option>)}
             </select>
           </div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
             {chain.bestBlock && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: '#1a1508', border: '0.5px solid #3d3010', fontSize: 12, fontFamily: 'JetBrains Mono, monospace', color: '#c9a84c' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: 'var(--warn-bg)', border: '0.5px solid var(--warn-border)', fontSize: 12, fontFamily: 'JetBrains Mono, monospace', color: '#c9a84c' }}>
                 <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#c9a84c', display: 'inline-block', animation: 'pulse 2s infinite' }} />
                 #{chain.bestBlock.number.toLocaleString()}
               </div>
             )}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: chain.status === 'connected' ? '#0d1f18' : '#1f0d0d', border: `0.5px solid ${chain.status === 'connected' ? '#1d3d2a' : '#3d1a1a'}`, fontSize: 12, fontFamily: 'JetBrains Mono, monospace', color: chain.status === 'connected' ? '#4caf82' : '#e05c5c' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: chain.status === 'connected' ? 'var(--ok-bg)' : 'var(--err-bg)', border: `0.5px solid ${chain.status === 'connected' ? 'var(--ok-border)' : 'var(--err-border)'}`, fontSize: 12, fontFamily: 'JetBrains Mono, monospace', color: chain.status === 'connected' ? '#4caf82' : '#e05c5c' }}>
               <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'currentColor', display: 'inline-block' }} />
               {chain.status === 'connected' ? 'Live' : chain.status === 'connecting' ? 'Connecting...' : 'Offline'}
             </div>
+
+            <WalletChip label="Connect Substrate" accent="#c9a84c" connected={!!wallet} text={wallet ? shortAddr(wallet.address) : ''} onConnect={connectWallet} />
+            <WalletChip label="Connect EVM" accent="#5b8fe8" connected={!!evmWallet} text={evmWallet ? shortAddr(evmWallet.address) : ''} onConnect={connectEvm} />
+
+            <button onClick={() => setTheme(t => t === 'light' ? 'dark' : 'light')} title={theme === 'light' ? 'Switch to dark' : 'Switch to light'}
+              style={{ width: 30, height: 30, borderRadius: 20, background: 'var(--bg2)', border: '0.5px solid var(--border)', color: 'var(--text2)', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              {theme === 'light' ? '🌙' : '☀️'}
+            </button>
           </div>
         </div>
         {renderPage()}

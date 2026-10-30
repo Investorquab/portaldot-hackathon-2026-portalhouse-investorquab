@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { nextFreeAssetId } from './TokenStudio'
 
 const GROQ_API = 'https://api.groq.com/openai/v1/chat/completions'
 const GROQ_MODEL = 'openai/gpt-oss-120b'
@@ -64,27 +65,27 @@ function Msg({ msg, onExecute }) {
   const isUser = msg.role === 'user'
   return (
     <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexDirection: isUser ? 'row-reverse' : 'row', alignItems: 'flex-start' }}>
-      <div style={{ width: 30, height: 30, borderRadius: '50%', flexShrink: 0, background: isUser ? 'linear-gradient(135deg, #c9a84c, #e8a530)' : '#111520', border: isUser ? 'none' : '0.5px solid #1e2433', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: isUser ? '#0a0d13' : '#c9a84c' }}>
+      <div style={{ width: 30, height: 30, borderRadius: '50%', flexShrink: 0, background: isUser ? 'linear-gradient(135deg, #c9a84c, #e8a530)' : 'var(--bg2)', border: isUser ? 'none' : '0.5px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: isUser ? 'var(--bg0)' : '#c9a84c' }}>
         {isUser ? 'U' : '⬡'}
       </div>
       <div style={{ maxWidth: '78%' }}>
-        <div style={{ padding: '10px 14px', borderRadius: isUser ? '12px 4px 12px 12px' : '4px 12px 12px 12px', background: isUser ? '#1a2535' : '#111520', border: `0.5px solid ${isUser ? '#2a3550' : '#1e2433'}`, fontSize: 13, color: '#e0e2ea', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
+        <div style={{ padding: '10px 14px', borderRadius: isUser ? '12px 4px 12px 12px' : '4px 12px 12px 12px', background: isUser ? 'var(--bg3)' : 'var(--bg2)', border: `0.5px solid ${isUser ? 'var(--border2)' : 'var(--border)'}`, fontSize: 13, color: 'var(--text)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
           {msg.content}
           {msg.loading && <span style={{ animation: 'pulse 1s infinite', display: 'inline-block', marginLeft: 4 }}>▋</span>}
         </div>
         {msg.action && !msg.executed && (
-          <div style={{ marginTop: 8, padding: '10px 14px', background: '#0d1f18', border: '0.5px solid #1d3d2a', borderRadius: 8 }}>
+          <div style={{ marginTop: 8, padding: '10px 14px', background: 'var(--ok-bg)', border: '0.5px solid var(--ok-border)', borderRadius: 8 }}>
             <div style={{ fontSize: 11, color: '#4caf82', marginBottom: 6, fontWeight: 600 }}>TRANSACTION READY</div>
-            <div style={{ fontSize: 12, fontFamily: 'JetBrains Mono, monospace', color: '#8891a8', marginBottom: 8 }}>
+            <div style={{ fontSize: 12, fontFamily: 'JetBrains Mono, monospace', color: 'var(--text2)', marginBottom: 8 }}>
               {msg.action.description}
             </div>
-            <button onClick={() => onExecute(msg.action)} style={{ padding: '7px 16px', background: '#c9a84c', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 600, color: '#0a0d13', cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>
+            <button onClick={() => onExecute(msg.action)} style={{ padding: '7px 16px', background: '#c9a84c', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 600, color: 'var(--bg0)', cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>
               Sign & Execute
             </button>
           </div>
         )}
         {msg.executed && (
-          <div style={{ marginTop: 8, padding: '8px 14px', background: '#0d1f18', border: '0.5px solid #1d3d2a', borderRadius: 8, fontSize: 12, color: '#4caf82' }}>
+          <div style={{ marginTop: 8, padding: '8px 14px', background: 'var(--ok-bg)', border: '0.5px solid var(--ok-border)', borderRadius: 8, fontSize: 12, color: '#4caf82' }}>
             ✓ Transaction executed
           </div>
         )}
@@ -126,12 +127,10 @@ export function AiAssistant({ wallet, api, recentTxs, chainInfo, bestBlock, getS
       if (action.type === 'transfer') {
         tx = api.tx.balances.transferKeepAlive(action.to, toPlanck(action.amount, decimals))
       } else if (action.type === 'createToken') {
-        let id
-        try { const n = await api.query.assets.nextAssetId?.(); id = n ? (typeof n === 'object' ? n.toNumber() : n) : null } catch {}
-        if (id == null) id = Math.floor(Math.random() * 9000) + 1000
+        const id = await nextFreeAssetId(api)
         tx = api.tx.utility.batchAll([
           api.tx.assets.create(id, wallet.address, 1),
-          api.tx.assets.setMetadata(id, action.name, action.symbol || action.name.slice(0,4).toUpperCase(), 12),
+          api.tx.assets.setMetadata(id, action.name, action.symbol || action.name.slice(0,4).toUpperCase(), 14),
           api.tx.assets.mint(id, wallet.address, action.supply),
         ])
       } else if (action.type === 'setIdentity') {
@@ -254,29 +253,29 @@ RULES:
     setAnalyzing(false)
   }
 
-  const tab = (t) => ({ flex: 1, padding: '8px', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', border: 'none', fontFamily: 'Inter, sans-serif', background: activeTab === t ? '#1a2535' : 'transparent', color: activeTab === t ? '#c9a84c' : '#4a5266', transition: 'all 0.15s' })
+  const tab = (t) => ({ flex: 1, padding: '8px', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', border: 'none', fontFamily: 'Inter, sans-serif', background: activeTab === t ? 'var(--bg3)' : 'transparent', color: activeTab === t ? '#c9a84c' : 'var(--text4)', transition: 'all 0.15s' })
 
   return (
     <div className="fadein" style={{ padding: '32px 40px', maxWidth: 900, margin: '0 auto' }}>
       {showKey && (
-        <div style={{ background: '#111520', border: '0.5px solid #c9a84c44', borderRadius: 10, padding: 16, marginBottom: 16 }}>
+        <div style={{ background: 'var(--bg2)', border: '0.5px solid #c9a84c44', borderRadius: 10, padding: 16, marginBottom: 16 }}>
           <div style={{ fontSize: 13, color: '#c9a84c', fontWeight: 600, marginBottom: 6 }}>Groq API Key Required</div>
-          <div style={{ fontSize: 12, color: '#6b7591', marginBottom: 10 }}>Free at console.groq.com — no credit card needed</div>
+          <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 10 }}>Free at console.groq.com — no credit card needed</div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <input value={groqKey} onChange={e => setGroqKey(e.target.value)} placeholder="gsk_..." style={{ flex: 1, padding: '8px 12px', background: '#0a0d13', border: '0.5px solid #1e2433', borderRadius: 8, fontSize: 13, color: '#e0e2ea', outline: 'none', fontFamily: 'JetBrains Mono, monospace' }} />
-            <button onClick={() => { localStorage.setItem('groq_key', groqKey); setShowKey(false) }} style={{ padding: '8px 16px', background: '#c9a84c', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, color: '#0a0d13', cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>Save</button>
+            <input value={groqKey} onChange={e => setGroqKey(e.target.value)} placeholder="gsk_..." style={{ flex: 1, padding: '8px 12px', background: 'var(--bg0)', border: '0.5px solid var(--border)', borderRadius: 8, fontSize: 13, color: 'var(--text)', outline: 'none', fontFamily: 'JetBrains Mono, monospace' }} />
+            <button onClick={() => { localStorage.setItem('groq_key', groqKey); setShowKey(false) }} style={{ padding: '8px 16px', background: '#c9a84c', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, color: 'var(--bg0)', cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>Save</button>
           </div>
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: 4, background: '#111520', border: '0.5px solid #1e2433', borderRadius: 10, padding: 4, marginBottom: 20 }}>
+      <div style={{ display: 'flex', gap: 4, background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: 10, padding: 4, marginBottom: 20 }}>
         <button style={tab('chat')} onClick={() => setActiveTab('chat')}>💬 AI Chat</button>
         <button style={tab('analysis')} onClick={() => setActiveTab('analysis')}>📊 Profile Analysis</button>
       </div>
 
       {activeTab === 'chat' && (
         <>
-          <div style={{ background: '#111520', border: '0.5px solid #1e2433', borderRadius: 10, padding: 20, minHeight: 300, maxHeight: 460, overflowY: 'auto', marginBottom: 12 }}>
+          <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: 10, padding: 20, minHeight: 300, maxHeight: 460, overflowY: 'auto', marginBottom: 12 }}>
             {messages.map((msg, i) => (
               <Msg key={i} msg={msg} onExecute={(action) => executeAction(action, i)} />
             ))}
@@ -285,64 +284,64 @@ RULES:
 
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
             {EXAMPLES.slice(0, 4).map(ex => (
-              <button key={ex} onClick={() => setInput(ex)} style={{ padding: '4px 10px', background: '#111520', border: '0.5px solid #1e2433', borderRadius: 20, fontSize: 11, color: '#6b7591', cursor: 'pointer', fontFamily: 'Inter, sans-serif', transition: 'all 0.15s' }}
+              <button key={ex} onClick={() => setInput(ex)} style={{ padding: '4px 10px', background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: 20, fontSize: 11, color: 'var(--text3)', cursor: 'pointer', fontFamily: 'Inter, sans-serif', transition: 'all 0.15s' }}
                 onMouseEnter={e => { e.target.style.borderColor='#c9a84c'; e.target.style.color='#c9a84c' }}
-                onMouseLeave={e => { e.target.style.borderColor='#1e2433'; e.target.style.color='#6b7591' }}
+                onMouseLeave={e => { e.target.style.borderColor='var(--border)'; e.target.style.color='var(--text3)' }}
               >{ex}</button>
             ))}
           </div>
 
           <div style={{ display: 'flex', gap: 8 }}>
             <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && !e.shiftKey && send()} placeholder='Ask anything or type a command like "send 5 tPOT to 5EHmLt..."' disabled={loading}
-              style={{ flex: 1, padding: '10px 14px', background: '#111520', border: '0.5px solid #1e2433', borderRadius: 8, fontSize: 13, color: '#e0e2ea', outline: 'none', fontFamily: 'Inter, sans-serif' }}
-              onFocus={e => e.target.style.borderColor='#c9a84c'} onBlur={e => e.target.style.borderColor='#1e2433'}
+              style={{ flex: 1, padding: '10px 14px', background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: 8, fontSize: 13, color: 'var(--text)', outline: 'none', fontFamily: 'Inter, sans-serif' }}
+              onFocus={e => e.target.style.borderColor='#c9a84c'} onBlur={e => e.target.style.borderColor='var(--border)'}
             />
-            <button onClick={send} disabled={loading || !input.trim()} style={{ padding: '10px 20px', background: loading ? '#1a1f2e' : '#c9a84c', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, color: loading ? '#4a5266' : '#0a0d13', cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'Inter, sans-serif', flexShrink: 0 }}>
+            <button onClick={send} disabled={loading || !input.trim()} style={{ padding: '10px 20px', background: loading ? 'var(--bg3)' : '#c9a84c', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, color: loading ? 'var(--text4)' : 'var(--bg0)', cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'Inter, sans-serif', flexShrink: 0 }}>
               {loading ? '...' : 'Send'}
             </button>
           </div>
-          {!groqKey && <div style={{ marginTop: 8, fontSize: 11, color: '#4a5266', fontFamily: 'JetBrains Mono, monospace' }}>⚡ <span style={{ color: '#c9a84c', cursor: 'pointer' }} onClick={() => setShowKey(true)}>Add free Groq API key</span> to activate</div>}
+          {!groqKey && <div style={{ marginTop: 8, fontSize: 11, color: 'var(--text4)', fontFamily: 'JetBrains Mono, monospace' }}>⚡ <span style={{ color: '#c9a84c', cursor: 'pointer' }} onClick={() => setShowKey(true)}>Add free Groq API key</span> to activate</div>}
         </>
       )}
 
       {activeTab === 'analysis' && (
         <div>
           {!wallet ? (
-            <div style={{ background: '#111520', border: '0.5px solid #1e2433', borderRadius: 10, padding: 40, textAlign: 'center' }}>
+            <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: 10, padding: 40, textAlign: 'center' }}>
               <div style={{ fontSize: 28, marginBottom: 12 }}>🔐</div>
-              <div style={{ fontSize: 14, color: '#8891a8' }}>Connect your wallet to analyze your on-chain activity</div>
+              <div style={{ fontSize: 14, color: 'var(--text2)' }}>Connect your wallet to analyze your on-chain activity</div>
             </div>
           ) : (
             <>
-              <div style={{ background: '#111520', border: '0.5px solid #1e2433', borderRadius: 10, padding: 20, marginBottom: 16 }}>
+              <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: 10, padding: 20, marginBottom: 16 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: '#e0e2ea', marginBottom: 4 }}>Wallet Activity</div>
-                    <div style={{ fontSize: 12, fontFamily: 'JetBrains Mono, monospace', color: '#6b7591' }}>{wallet.address}</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>Wallet Activity</div>
+                    <div style={{ fontSize: 12, fontFamily: 'JetBrains Mono, monospace', color: 'var(--text3)' }}>{wallet.address}</div>
                   </div>
-                  <button onClick={analyzeProfile} disabled={analyzing} style={{ padding: '8px 16px', background: analyzing ? '#1a1f2e' : '#c9a84c', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, color: analyzing ? '#4a5266' : '#0a0d13', cursor: analyzing ? 'not-allowed' : 'pointer', fontFamily: 'Inter, sans-serif' }}>
+                  <button onClick={analyzeProfile} disabled={analyzing} style={{ padding: '8px 16px', background: analyzing ? 'var(--bg3)' : '#c9a84c', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, color: analyzing ? 'var(--text4)' : 'var(--bg0)', cursor: analyzing ? 'not-allowed' : 'pointer', fontFamily: 'Inter, sans-serif' }}>
                     {analyzing ? 'Analyzing...' : '⚡ Analyze'}
                   </button>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
                   {[['Balance', wallet.balance], ['My Txs', `${(recentTxs?.filter(t => t.signer === wallet.address).length || 0)} seen`], ['Block', bestBlock ? `#${bestBlock.number}` : '—']].map(([l, v]) => (
-                    <div key={l} style={{ background: '#0e1117', borderRadius: 8, padding: 12 }}>
-                      <div style={{ fontSize: 11, color: '#4a5266', marginBottom: 4 }}>{l}</div>
+                    <div key={l} style={{ background: 'var(--bg1)', borderRadius: 8, padding: 12 }}>
+                      <div style={{ fontSize: 11, color: 'var(--text4)', marginBottom: 4 }}>{l}</div>
                       <div style={{ fontSize: 14, fontWeight: 600, color: '#c9a84c', fontFamily: 'JetBrains Mono, monospace' }}>{v}</div>
                     </div>
                   ))}
                 </div>
               </div>
               {analysis ? (
-                <div style={{ background: '#111520', border: '0.5px solid #1e2433', borderRadius: 10, padding: 20 }}>
-                  <div style={{ fontSize: 11, color: '#8891a8', letterSpacing: 1, textTransform: 'uppercase', fontWeight: 600, marginBottom: 12 }}>AI Analysis</div>
-                  <div style={{ fontSize: 13, color: '#e0e2ea', lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>{analysis}</div>
-                  <button onClick={analyzeProfile} style={{ marginTop: 12, padding: '6px 14px', background: '#1a1f2e', border: '0.5px solid #1e2433', borderRadius: 6, fontSize: 12, color: '#8891a8', cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>↻ Re-analyze</button>
+                <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: 10, padding: 20 }}>
+                  <div style={{ fontSize: 11, color: 'var(--text2)', letterSpacing: 1, textTransform: 'uppercase', fontWeight: 600, marginBottom: 12 }}>AI Analysis</div>
+                  <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>{analysis}</div>
+                  <button onClick={analyzeProfile} style={{ marginTop: 12, padding: '6px 14px', background: 'var(--bg3)', border: '0.5px solid var(--border)', borderRadius: 6, fontSize: 12, color: 'var(--text2)', cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>↻ Re-analyze</button>
                 </div>
               ) : (
-                <div style={{ background: '#111520', border: '0.5px solid #1e2433', borderRadius: 10, padding: 30, textAlign: 'center' }}>
+                <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: 10, padding: 30, textAlign: 'center' }}>
                   <div style={{ fontSize: 28, marginBottom: 10 }}>📊</div>
-                  <div style={{ fontSize: 13, color: '#6b7591' }}>Click Analyze to get AI insights about your wallet</div>
+                  <div style={{ fontSize: 13, color: 'var(--text3)' }}>Click Analyze to get AI insights about your wallet</div>
                 </div>
               )}
             </>

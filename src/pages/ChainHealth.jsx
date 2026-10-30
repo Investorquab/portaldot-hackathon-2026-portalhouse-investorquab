@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react'
 
 function StatCard({ label, value, sub, color }) {
   return (
-    <div style={{ background: '#111520', border: '0.5px solid #1e2433', borderRadius: 10, padding: 20 }}>
-      <div style={{ fontSize: 11, color: '#8891a8', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10, fontWeight: 600 }}>{label}</div>
-      <div style={{ fontSize: 26, fontWeight: 600, fontFamily: 'JetBrains Mono, monospace', color: color || '#e0e2ea' }}>{value}</div>
-      {sub && <div style={{ fontSize: 12, color: '#6b7591', marginTop: 5 }}>{sub}</div>}
+    <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: 10, padding: 20 }}>
+      <div style={{ fontSize: 11, color: 'var(--text2)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10, fontWeight: 600 }}>{label}</div>
+      <div style={{ fontSize: 26, fontWeight: 600, fontFamily: 'JetBrains Mono, monospace', color: color || 'var(--text)' }}>{value}</div>
+      {sub && <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 5 }}>{sub}</div>}
     </div>
   )
 }
@@ -27,15 +27,15 @@ const methodColor = (m) => {
   if (m === 'staking') return '#c9a84c'
   if (m === 'contracts') return '#5b8fe8'
   if (m === 'identity') return '#a07ce8'
-  return '#8891a8'
+  return 'var(--text2)'
 }
 
 const methodBg = (m) => {
-  if (m === 'balances') return '#0d1f18'
-  if (m === 'staking') return '#1a1508'
-  if (m === 'contracts') return '#0d1525'
+  if (m === 'balances') return 'var(--ok-bg)'
+  if (m === 'staking') return 'var(--warn-bg)'
+  if (m === 'contracts') return 'var(--info-bg)'
   if (m === 'identity') return '#150d25'
-  return '#1a1f2e'
+  return 'var(--bg3)'
 }
 
 const scrollStyle = {
@@ -66,27 +66,27 @@ export function ChainHealth({ chainInfo, bestBlock, finalizedBlock, validators, 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
 
         {/* Recent Blocks */}
-        <div style={{ background: '#111520', border: '0.5px solid #1e2433', borderRadius: 10, padding: 18 }}>
-          <div style={{ fontSize: 11, color: '#8891a8', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 14, fontWeight: 600 }}>
+        <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: 10, padding: 18 }}>
+          <div style={{ fontSize: 11, color: 'var(--text2)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 14, fontWeight: 600 }}>
             Recent Blocks
           </div>
           {recentBlocks.length === 0 ? (
-            <div style={{ fontSize: 13, color: '#4a5266', fontFamily: 'JetBrains Mono, monospace' }}>Waiting for blocks...</div>
+            <div style={{ fontSize: 13, color: 'var(--text4)', fontFamily: 'JetBrains Mono, monospace' }}>Waiting for blocks...</div>
           ) : (
             <div style={scrollStyle}>
               {recentBlocks.map((b, i) => (
                 <div key={b.number} style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   padding: '9px 0',
-                  borderBottom: i < recentBlocks.length - 1 ? '0.5px solid #1a1f2e' : 'none',
+                  borderBottom: i < recentBlocks.length - 1 ? '0.5px solid var(--bg3)' : 'none',
                 }}>
                   <span style={{ fontSize: 13, fontFamily: 'JetBrains Mono, monospace', color: '#c9a84c', fontWeight: 600 }}>
                     #{b.number.toLocaleString()}
                   </span>
-                  <span style={{ fontSize: 12, fontFamily: 'JetBrains Mono, monospace', color: '#4a5266' }}>
+                  <span style={{ fontSize: 12, fontFamily: 'JetBrains Mono, monospace', color: 'var(--text4)' }}>
                     {short(b.hash)}
                   </span>
-                  <span style={{ fontSize: 12, color: '#8891a8' }}>{timeAgo(b.time)}</span>
+                  <span style={{ fontSize: 12, color: 'var(--text2)' }}>{timeAgo(b.time)}</span>
                 </div>
               ))}
             </div>
@@ -94,25 +94,25 @@ export function ChainHealth({ chainInfo, bestBlock, finalizedBlock, validators, 
         </div>
 
         {/* Validators */}
-        <div style={{ background: '#111520', border: '0.5px solid #1e2433', borderRadius: 10, padding: 18 }}>
-          <div style={{ fontSize: 11, color: '#8891a8', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 14, fontWeight: 600 }}>
+        <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: 10, padding: 18 }}>
+          <div style={{ fontSize: 11, color: 'var(--text2)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 14, fontWeight: 600 }}>
             Active Validators
           </div>
           {validators.length === 0 ? (
-            <div style={{ fontSize: 13, color: '#4a5266', fontFamily: 'JetBrains Mono, monospace' }}>Loading validators...</div>
+            <div style={{ fontSize: 13, color: 'var(--text4)', fontFamily: 'JetBrains Mono, monospace' }}>Loading validators...</div>
           ) : (
             <div style={scrollStyle}>
               {validators.map((v, i) => (
                 <div key={v} style={{
                   display: 'flex', alignItems: 'center', gap: 10,
                   padding: '9px 0',
-                  borderBottom: i < validators.length - 1 ? '0.5px solid #1a1f2e' : 'none',
+                  borderBottom: i < validators.length - 1 ? '0.5px solid var(--bg3)' : 'none',
                 }}>
                   <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#4caf82', display: 'inline-block', flexShrink: 0 }} />
-                  <span style={{ flex: 1, fontSize: 13, fontFamily: 'JetBrains Mono, monospace', color: '#c0c4d0' }}>
+                  <span style={{ flex: 1, fontSize: 13, fontFamily: 'JetBrains Mono, monospace', color: 'var(--text2)' }}>
                     {v.slice(0, 12)}...{v.slice(-6)}
                   </span>
-                  <span style={{ display: 'inline-flex', padding: '2px 8px', borderRadius: 4, fontSize: 11, color: '#4caf82', background: '#0d1f18', border: '0.5px solid #1d3d2a' }}>
+                  <span style={{ display: 'inline-flex', padding: '2px 8px', borderRadius: 4, fontSize: 11, color: '#4caf82', background: 'var(--ok-bg)', border: '0.5px solid var(--ok-border)' }}>
                     active
                   </span>
                 </div>
@@ -123,22 +123,22 @@ export function ChainHealth({ chainInfo, bestBlock, finalizedBlock, validators, 
       </div>
 
       {/* Live Transactions */}
-      <div style={{ background: '#111520', border: '0.5px solid #1e2433', borderRadius: 10, padding: 18 }}>
+      <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: 10, padding: 18 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-          <div style={{ fontSize: 11, color: '#8891a8', letterSpacing: 1, textTransform: 'uppercase', fontWeight: 600 }}>
+          <div style={{ fontSize: 11, color: 'var(--text2)', letterSpacing: 1, textTransform: 'uppercase', fontWeight: 600 }}>
             Live Transactions
           </div>
           <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4caf82', display: 'inline-block', animation: 'pulse 2s infinite' }} />
         </div>
         {recentTxs.length === 0 ? (
-          <div style={{ fontSize: 13, color: '#4a5266', fontFamily: 'JetBrains Mono, monospace' }}>Waiting for transactions...</div>
+          <div style={{ fontSize: 13, color: 'var(--text4)', fontFamily: 'JetBrains Mono, monospace' }}>Waiting for transactions...</div>
         ) : (
           <div style={{ maxHeight: 200, overflowY: 'auto', paddingRight: 2 }}>
             {recentTxs.map((tx, i) => (
               <div key={`${tx.id}-${i}`} style={{
                 display: 'flex', alignItems: 'center', gap: 14,
                 padding: '9px 0',
-                borderBottom: i < recentTxs.length - 1 ? '0.5px solid #1a1f2e' : 'none',
+                borderBottom: i < recentTxs.length - 1 ? '0.5px solid var(--bg3)' : 'none',
               }}>
                 <span style={{
                   display: 'inline-flex', padding: '3px 10px', borderRadius: 4,
@@ -150,10 +150,10 @@ export function ChainHealth({ chainInfo, bestBlock, finalizedBlock, validators, 
                 }}>
                   {tx.method}.{tx.call}
                 </span>
-                <span style={{ fontSize: 13, fontFamily: 'JetBrains Mono, monospace', color: '#6b7591', flex: 1 }}>
+                <span style={{ fontSize: 13, fontFamily: 'JetBrains Mono, monospace', color: 'var(--text3)', flex: 1 }}>
                   block #{tx.block}
                 </span>
-                <span style={{ fontSize: 12, color: '#8891a8' }}>{timeAgo(tx.time)}</span>
+                <span style={{ fontSize: 12, color: 'var(--text2)' }}>{timeAgo(tx.time)}</span>
               </div>
             ))}
           </div>

@@ -39,10 +39,10 @@ function timeLeft(d) {
 }
 
 function badge(b) {
-  if (b.status === 'completed') return { label: 'Completed', color: '#4caf82', bg: '#0d1f18', border: '#1d3d2a' }
+  if (b.status === 'completed') return { label: 'Completed', color: '#4caf82', bg: 'var(--ok-bg)', border: 'var(--ok-border)' }
   return b.deadline - Date.now() < 86400000
-    ? { label: 'Ending Soon', color: '#c9a84c', bg: '#1a1508', border: '#3d3010' }
-    : { label: 'Open', color: '#5b8fe8', bg: '#0d1525', border: '#1a2f50' }
+    ? { label: 'Ending Soon', color: '#c9a84c', bg: 'var(--warn-bg)', border: 'var(--warn-border)' }
+    : { label: 'Open', color: '#5b8fe8', bg: 'var(--info-bg)', border: 'var(--info-border)' }
 }
 
 export function BountyBoard({ wallet, api, getSigner, decimals = 14, tokenSymbol = 'tPOT' }) {
@@ -80,7 +80,7 @@ export function BountyBoard({ wallet, api, getSigner, decimals = 14, tokenSymbol
   useEffect(() => { if (wallet?.address) setSAddr(wallet.address) }, [wallet?.address])
 
   const showMsg = (type, text) => { setMsg({ type, text }); setTimeout(() => setMsg(null), 5000) }
-  const Msg = () => msg ? <div style={{ padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 13, background: msg.type === 'ok' ? '#0d1f18' : '#1f0d0d', border: `0.5px solid ${msg.type === 'ok' ? '#1d3d2a' : '#3d1a1a'}`, color: msg.type === 'ok' ? '#4caf82' : '#e05c5c' }}>{msg.text}</div> : null
+  const Msg = () => msg ? <div style={{ padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 13, background: msg.type === 'ok' ? 'var(--ok-bg)' : 'var(--err-bg)', border: `0.5px solid ${msg.type === 'ok' ? 'var(--ok-border)' : 'var(--err-border)'}`, color: msg.type === 'ok' ? '#4caf82' : '#e05c5c' }}>{msg.text}</div> : null
 
   const createBounty = async () => {
     if (!wallet) return showMsg('err', 'Connect your wallet first')
@@ -152,24 +152,24 @@ export function BountyBoard({ wallet, api, getSigner, decimals = 14, tokenSymbol
         <button onClick={() => setView('list')} style={{ background: 'none', border: 'none', color: '#c9a84c', cursor: 'pointer', fontSize: 13, marginBottom: 20, fontFamily: 'Inter, sans-serif' }}>← Back</button>
         <Msg />
 
-        <div style={{ background: '#111520', border: '0.5px solid #1e2433', borderRadius: 10, padding: 20, marginBottom: 12 }}>
+        <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: 10, padding: 20, marginBottom: 12 }}>
           <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
             <span style={{ display: 'inline-flex', padding: '2px 8px', borderRadius: 4, fontSize: 11, color: bd.color, background: bd.bg, border: `0.5px solid ${bd.border}` }}>{bd.label}</span>
-            <span style={{ fontSize: 11, fontFamily: 'JetBrains Mono, monospace', color: '#4a5266' }}>{timeLeft(b.deadline)}</span>
+            <span style={{ fontSize: 11, fontFamily: 'JetBrains Mono, monospace', color: 'var(--text4)' }}>{timeLeft(b.deadline)}</span>
           </div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: '#e0e2ea', marginBottom: 10 }}>{b.title}</div>
-          <div style={{ fontSize: 13, color: '#6b7591', lineHeight: 1.7, marginBottom: 16 }}>{b.description}</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', marginBottom: 10 }}>{b.title}</div>
+          <div style={{ fontSize: 13, color: 'var(--text3)', lineHeight: 1.7, marginBottom: 16 }}>{b.description}</div>
           <div style={{ display: 'flex', gap: 20, fontSize: 12, fontFamily: 'JetBrains Mono, monospace' }}>
-            <span style={{ color: '#4a5266' }}>by <span style={{ color: '#c9a84c' }}>{b.posterName || short(b.poster)}</span></span>
-            <span style={{ color: '#4a5266' }}>{b.submissions.length} submissions</span>
+            <span style={{ color: 'var(--text4)' }}>by <span style={{ color: '#c9a84c' }}>{b.posterName || short(b.poster)}</span></span>
+            <span style={{ color: 'var(--text4)' }}>{b.submissions.length} submissions</span>
             <span style={{ color: '#4caf82', fontWeight: 700, fontSize: 15 }}>{b.reward} {tokenSymbol}</span>
           </div>
         </div>
 
         {b.winner && (
-          <div style={{ background: '#0d1f18', border: '0.5px solid #1d3d2a', borderRadius: 10, padding: 16, marginBottom: 12 }}>
+          <div style={{ background: 'var(--ok-bg)', border: '0.5px solid var(--ok-border)', borderRadius: 10, padding: 16, marginBottom: 12 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: '#4caf82', marginBottom: 6 }}>🏆 Winner: {b.winnerName || short(b.winner)}</div>
-            <div style={{ fontSize: 12, fontFamily: 'JetBrains Mono, monospace', color: '#6b7591' }}>{b.winner}</div>
+            <div style={{ fontSize: 12, fontFamily: 'JetBrains Mono, monospace', color: 'var(--text3)' }}>{b.winner}</div>
             <div style={{ marginTop: 10, fontSize: 12, color: '#4caf82' }}>
               {b.reward} {tokenSymbol} paid
               {b.payoutTx && <> · <a href={extrinsicUrl(b.payoutTx)} target="_blank" rel="noreferrer" style={{ color: '#5b8fe8' }}>view payout ↗</a></>}
@@ -177,35 +177,35 @@ export function BountyBoard({ wallet, api, getSigner, decimals = 14, tokenSymbol
           </div>
         )}
 
-        <div style={{ fontSize: 11, color: '#8891a8', letterSpacing: 1, textTransform: 'uppercase', fontWeight: 600, marginBottom: 10 }}>
+        <div style={{ fontSize: 11, color: 'var(--text2)', letterSpacing: 1, textTransform: 'uppercase', fontWeight: 600, marginBottom: 10 }}>
           Submissions ({b.submissions.length})
         </div>
 
         {b.submissions.length === 0 ? (
-          <div style={{ background: '#111520', border: '0.5px solid #1e2433', borderRadius: 10, padding: 24, textAlign: 'center', marginBottom: 12 }}>
-            <div style={{ fontSize: 13, color: '#4a5266' }}>No submissions yet — be the first!</div>
+          <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: 10, padding: 24, textAlign: 'center', marginBottom: 12 }}>
+            <div style={{ fontSize: 13, color: 'var(--text4)' }}>No submissions yet — be the first!</div>
           </div>
         ) : (
           b.submissions.map((s, i) => {
             const isWinner = b.winner === s.address
             return (
-              <div key={s.id} style={{ background: '#111520', border: `0.5px solid ${isWinner ? '#4caf82' : '#1e2433'}`, borderRadius: 10, padding: 16, marginBottom: 10 }}>
+              <div key={s.id} style={{ background: 'var(--bg2)', border: `0.5px solid ${isWinner ? '#4caf82' : 'var(--border)'}`, borderRadius: 10, padding: 16, marginBottom: 10 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: isWinner ? '#4caf82' : '#e0e2ea', marginBottom: 3 }}>{isWinner ? '🏆 ' : ''}{s.name}</div>
-                    <div style={{ fontSize: 11, fontFamily: 'JetBrains Mono, monospace', color: '#4a5266' }}>{short(s.address)}</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: isWinner ? '#4caf82' : 'var(--text)', marginBottom: 3 }}>{isWinner ? '🏆 ' : ''}{s.name}</div>
+                    <div style={{ fontSize: 11, fontFamily: 'JetBrains Mono, monospace', color: 'var(--text4)' }}>{short(s.address)}</div>
                     <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
                       {s.twitter && <span style={{ fontSize: 11, color: '#5b8fe8' }}>{s.twitter}</span>}
-                      {s.email && <span style={{ fontSize: 11, color: '#4a5266' }}>{s.email}</span>}
+                      {s.email && <span style={{ fontSize: 11, color: 'var(--text4)' }}>{s.email}</span>}
                     </div>
                   </div>
                   {isOwner && b.status === 'open' && (
-                    <button onClick={() => selectWinner(b.id, s)} disabled={paying === s.id} style={{ padding: '5px 14px', background: '#0d1f18', border: '0.5px solid #1d3d2a', borderRadius: 6, fontSize: 12, fontWeight: 600, color: paying === s.id ? '#4a5266' : '#4caf82', cursor: paying === s.id ? 'wait' : 'pointer', fontFamily: 'Inter, sans-serif', flexShrink: 0 }}>
+                    <button onClick={() => selectWinner(b.id, s)} disabled={paying === s.id} style={{ padding: '5px 14px', background: 'var(--ok-bg)', border: '0.5px solid var(--ok-border)', borderRadius: 6, fontSize: 12, fontWeight: 600, color: paying === s.id ? 'var(--text4)' : '#4caf82', cursor: paying === s.id ? 'wait' : 'pointer', fontFamily: 'Inter, sans-serif', flexShrink: 0 }}>
                       {paying === s.id ? 'Paying…' : `Pay ${b.reward} ${tokenSymbol}`}
                     </button>
                   )}
                 </div>
-                <div style={{ fontSize: 13, color: '#e0e2ea', lineHeight: 1.6, marginBottom: s.link ? 8 : 0 }}>{s.description}</div>
+                <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.6, marginBottom: s.link ? 8 : 0 }}>{s.description}</div>
                 {s.link && (
                   <div style={{ fontSize: 12, color: '#c9a84c', fontFamily: 'JetBrains Mono, monospace', marginTop: 6 }}>
                     🔗 {s.link}
@@ -217,30 +217,30 @@ export function BountyBoard({ wallet, api, getSigner, decimals = 14, tokenSymbol
         )}
 
         {b.status === 'open' && !alreadySubmitted && (
-          <div style={{ background: '#111520', border: '0.5px solid #1e2433', borderRadius: 10, padding: 20, marginTop: 8 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#8891a8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14 }}>Submit Your Work</div>
+          <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: 10, padding: 20, marginTop: 8 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14 }}>Submit Your Work</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
               {[['Name *', sName, setSName, 'Your name'], ['Address *', sAddr, setSAddr, '5EHmLt...'], ['Twitter', sTwitter, setSTwitter, '@handle'], ['Email', sEmail, setSEmail, 'email@example.com']].map(([label, val, set, ph]) => (
                 <div key={label}>
-                  <div style={{ fontSize: 11, color: '#6b7591', marginBottom: 4 }}>{label}</div>
-                  <input value={val} onChange={e => set(e.target.value)} placeholder={ph} style={{ width: '100%', padding: '8px 10px', background: '#0a0d13', border: '0.5px solid #1e2433', borderRadius: 6, fontSize: 12, color: '#e0e2ea', outline: 'none', fontFamily: label === 'Address *' ? 'JetBrains Mono, monospace' : 'Inter, sans-serif' }} />
+                  <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 4 }}>{label}</div>
+                  <input value={val} onChange={e => set(e.target.value)} placeholder={ph} style={{ width: '100%', padding: '8px 10px', background: 'var(--bg0)', border: '0.5px solid var(--border)', borderRadius: 6, fontSize: 12, color: 'var(--text)', outline: 'none', fontFamily: label === 'Address *' ? 'JetBrains Mono, monospace' : 'Inter, sans-serif' }} />
                 </div>
               ))}
             </div>
             <div style={{ marginBottom: 10 }}>
-              <div style={{ fontSize: 11, color: '#6b7591', marginBottom: 4 }}>Link to Submission</div>
-              <input value={sLink} onChange={e => setSLink(e.target.value)} placeholder="github.com/... or any URL" style={{ width: '100%', padding: '8px 10px', background: '#0a0d13', border: '0.5px solid #1e2433', borderRadius: 6, fontSize: 12, color: '#e0e2ea', outline: 'none', fontFamily: 'JetBrains Mono, monospace' }} />
+              <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 4 }}>Link to Submission</div>
+              <input value={sLink} onChange={e => setSLink(e.target.value)} placeholder="github.com/... or any URL" style={{ width: '100%', padding: '8px 10px', background: 'var(--bg0)', border: '0.5px solid var(--border)', borderRadius: 6, fontSize: 12, color: 'var(--text)', outline: 'none', fontFamily: 'JetBrains Mono, monospace' }} />
             </div>
             <div style={{ marginBottom: 14 }}>
-              <div style={{ fontSize: 11, color: '#6b7591', marginBottom: 4 }}>Description *</div>
-              <textarea value={sDesc} onChange={e => setSDesc(e.target.value)} placeholder="Describe your submission..." rows={3} style={{ width: '100%', padding: '8px 10px', background: '#0a0d13', border: '0.5px solid #1e2433', borderRadius: 6, fontSize: 12, color: '#e0e2ea', outline: 'none', fontFamily: 'Inter, sans-serif', resize: 'vertical' }} />
+              <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 4 }}>Description *</div>
+              <textarea value={sDesc} onChange={e => setSDesc(e.target.value)} placeholder="Describe your submission..." rows={3} style={{ width: '100%', padding: '8px 10px', background: 'var(--bg0)', border: '0.5px solid var(--border)', borderRadius: 6, fontSize: 12, color: 'var(--text)', outline: 'none', fontFamily: 'Inter, sans-serif', resize: 'vertical' }} />
             </div>
-            <button onClick={() => submitWork(b.id)} disabled={submitting || !sName || !sAddr || !sDesc} style={{ padding: '8px 20px', background: submitting ? '#1a1f2e' : '#c9a84c', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, color: submitting ? '#4a5266' : '#0a0d13', cursor: submitting ? 'not-allowed' : 'pointer', fontFamily: 'Inter, sans-serif' }}>
+            <button onClick={() => submitWork(b.id)} disabled={submitting || !sName || !sAddr || !sDesc} style={{ padding: '8px 20px', background: submitting ? 'var(--bg3)' : '#c9a84c', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, color: submitting ? 'var(--text4)' : 'var(--bg0)', cursor: submitting ? 'not-allowed' : 'pointer', fontFamily: 'Inter, sans-serif' }}>
               {submitting ? 'Submitting...' : 'Submit Work'}
             </button>
           </div>
         )}
-        {alreadySubmitted && b.status === 'open' && <div style={{ marginTop: 12, padding: '10px 14px', background: '#0d1f18', border: '0.5px solid #1d3d2a', borderRadius: 8, fontSize: 13, color: '#4caf82' }}>✓ You have already submitted</div>}
+        {alreadySubmitted && b.status === 'open' && <div style={{ marginTop: 12, padding: '10px 14px', background: 'var(--ok-bg)', border: '0.5px solid var(--ok-border)', borderRadius: 8, fontSize: 13, color: '#4caf82' }}>✓ You have already submitted</div>}
       </div>
     )
   }
@@ -249,26 +249,26 @@ export function BountyBoard({ wallet, api, getSigner, decimals = 14, tokenSymbol
   if (view === 'create') return (
     <div className="fadein" style={{ padding: '32px 40px', maxWidth: 900, margin: '0 auto' }}>
       <button onClick={() => setView('list')} style={{ background: 'none', border: 'none', color: '#c9a84c', cursor: 'pointer', fontSize: 13, marginBottom: 20, fontFamily: 'Inter, sans-serif' }}>← Back</button>
-      <div style={{ background: '#111520', border: '0.5px solid #1e2433', borderRadius: 10, padding: 24 }}>
-        <div style={{ fontSize: 15, fontWeight: 700, color: '#e0e2ea', marginBottom: 20 }}>Post New Bounty</div>
+      <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: 10, padding: 24 }}>
+        <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 20 }}>Post New Bounty</div>
         <Msg />
         {[['Title *', nTitle, setNTitle, 'What do you need done?', 'text'], [`${tokenSymbol} Reward *`, nReward, setNReward, '100', 'number']].map(([l, v, s, p, t]) => (
           <div key={l} style={{ marginBottom: 14 }}>
-            <div style={{ fontSize: 12, color: '#8891a8', marginBottom: 5 }}>{l}</div>
-            <input type={t} value={v} onChange={e => s(e.target.value)} placeholder={p} style={{ width: '100%', padding: '9px 12px', background: '#0a0d13', border: '0.5px solid #1e2433', borderRadius: 8, fontSize: 13, color: '#e0e2ea', outline: 'none' }} />
+            <div style={{ fontSize: 12, color: 'var(--text2)', marginBottom: 5 }}>{l}</div>
+            <input type={t} value={v} onChange={e => s(e.target.value)} placeholder={p} style={{ width: '100%', padding: '9px 12px', background: 'var(--bg0)', border: '0.5px solid var(--border)', borderRadius: 8, fontSize: 13, color: 'var(--text)', outline: 'none' }} />
           </div>
         ))}
         <div style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: 12, color: '#8891a8', marginBottom: 5 }}>Description *</div>
-          <textarea value={nDesc} onChange={e => setNDesc(e.target.value)} placeholder="Describe what you need..." rows={4} style={{ width: '100%', padding: '9px 12px', background: '#0a0d13', border: '0.5px solid #1e2433', borderRadius: 8, fontSize: 13, color: '#e0e2ea', outline: 'none', resize: 'vertical' }} />
+          <div style={{ fontSize: 12, color: 'var(--text2)', marginBottom: 5 }}>Description *</div>
+          <textarea value={nDesc} onChange={e => setNDesc(e.target.value)} placeholder="Describe what you need..." rows={4} style={{ width: '100%', padding: '9px 12px', background: 'var(--bg0)', border: '0.5px solid var(--border)', borderRadius: 8, fontSize: 13, color: 'var(--text)', outline: 'none', resize: 'vertical' }} />
         </div>
         <div style={{ marginBottom: 20, maxWidth: 200 }}>
-          <div style={{ fontSize: 12, color: '#8891a8', marginBottom: 5 }}>Duration</div>
-          <select value={nDays} onChange={e => setNDays(e.target.value)} style={{ width: '100%', padding: '9px 12px', background: '#0a0d13', border: '0.5px solid #1e2433', borderRadius: 8, fontSize: 13, color: '#e0e2ea', outline: 'none' }}>
+          <div style={{ fontSize: 12, color: 'var(--text2)', marginBottom: 5 }}>Duration</div>
+          <select value={nDays} onChange={e => setNDays(e.target.value)} style={{ width: '100%', padding: '9px 12px', background: 'var(--bg0)', border: '0.5px solid var(--border)', borderRadius: 8, fontSize: 13, color: 'var(--text)', outline: 'none' }}>
             {['3','7','14','30'].map(d => <option key={d} value={d}>{d} days</option>)}
           </select>
         </div>
-        <button onClick={createBounty} disabled={creating || !nTitle || !nDesc || !nReward} style={{ padding: '10px 24px', background: creating ? '#1a1f2e' : '#c9a84c', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, color: creating ? '#4a5266' : '#0a0d13', cursor: creating ? 'not-allowed' : 'pointer', fontFamily: 'Inter, sans-serif' }}>
+        <button onClick={createBounty} disabled={creating || !nTitle || !nDesc || !nReward} style={{ padding: '10px 24px', background: creating ? 'var(--bg3)' : '#c9a84c', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, color: creating ? 'var(--text4)' : 'var(--bg0)', cursor: creating ? 'not-allowed' : 'pointer', fontFamily: 'Inter, sans-serif' }}>
           {creating ? 'Posting...' : `Post Bounty — ${nReward || '0'} ${tokenSymbol}`}
         </button>
       </div>
@@ -279,31 +279,31 @@ export function BountyBoard({ wallet, api, getSigner, decimals = 14, tokenSymbol
   return (
     <div className="fadein" style={{ padding: '32px 40px', maxWidth: 900, margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <div style={{ fontSize: 13, color: '#6b7591' }}>Post tasks with {tokenSymbol} rewards — only you as creator can pay the winner (a real on-chain transfer)</div>
-        <button onClick={() => setView('create')} style={{ padding: '8px 16px', background: '#c9a84c', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, color: '#0a0d13', cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>+ Post Bounty</button>
+        <div style={{ fontSize: 13, color: 'var(--text3)' }}>Post tasks with {tokenSymbol} rewards — only you as creator can pay the winner (a real on-chain transfer)</div>
+        <button onClick={() => setView('create')} style={{ padding: '8px 16px', background: '#c9a84c', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, color: 'var(--bg0)', cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>+ Post Bounty</button>
       </div>
       <Msg />
       {bounties.map(b => {
         const bd = badge(b)
         return (
-          <div key={b.id} onClick={() => { setSelected(b); setView('detail') }} style={{ background: '#111520', border: '0.5px solid #1e2433', borderRadius: 10, padding: 20, marginBottom: 12, cursor: 'pointer', transition: 'border-color 0.15s' }}
+          <div key={b.id} onClick={() => { setSelected(b); setView('detail') }} style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: 10, padding: 20, marginBottom: 12, cursor: 'pointer', transition: 'border-color 0.15s' }}
             onMouseEnter={e => e.currentTarget.style.borderColor = '#c9a84c44'}
-            onMouseLeave={e => e.currentTarget.style.borderColor = '#1e2433'}
+            onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
                   <span style={{ display: 'inline-flex', padding: '2px 8px', borderRadius: 4, fontSize: 11, color: bd.color, background: bd.bg, border: `0.5px solid ${bd.border}` }}>{bd.label}</span>
-                  <span style={{ fontSize: 11, fontFamily: 'JetBrains Mono, monospace', color: '#4a5266' }}>{timeLeft(b.deadline)}</span>
-                  {b.poster === wallet?.address && <span style={{ display: 'inline-flex', padding: '2px 8px', borderRadius: 4, fontSize: 11, color: '#c9a84c', background: '#1a1508', border: '0.5px solid #3d3010' }}>Your bounty</span>}
+                  <span style={{ fontSize: 11, fontFamily: 'JetBrains Mono, monospace', color: 'var(--text4)' }}>{timeLeft(b.deadline)}</span>
+                  {b.poster === wallet?.address && <span style={{ display: 'inline-flex', padding: '2px 8px', borderRadius: 4, fontSize: 11, color: '#c9a84c', background: 'var(--warn-bg)', border: '0.5px solid var(--warn-border)' }}>Your bounty</span>}
                 </div>
-                <div style={{ fontSize: 15, fontWeight: 600, color: '#e0e2ea', marginBottom: 6 }}>{b.title}</div>
-                <div style={{ fontSize: 12, color: '#6b7591', marginBottom: 8, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{b.description}</div>
-                <div style={{ fontSize: 12, fontFamily: 'JetBrains Mono, monospace', color: '#4a5266' }}>{b.submissions.length} submissions · by {b.posterName || short(b.poster)}</div>
+                <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)', marginBottom: 6 }}>{b.title}</div>
+                <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 8, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{b.description}</div>
+                <div style={{ fontSize: 12, fontFamily: 'JetBrains Mono, monospace', color: 'var(--text4)' }}>{b.submissions.length} submissions · by {b.posterName || short(b.poster)}</div>
               </div>
               <div style={{ textAlign: 'right', flexShrink: 0 }}>
                 <div style={{ fontSize: 22, fontWeight: 700, color: '#c9a84c', fontFamily: 'JetBrains Mono, monospace' }}>{b.reward}</div>
-                <div style={{ fontSize: 11, color: '#4a5266' }}>{tokenSymbol}</div>
+                <div style={{ fontSize: 11, color: 'var(--text4)' }}>{tokenSymbol}</div>
               </div>
             </div>
           </div>

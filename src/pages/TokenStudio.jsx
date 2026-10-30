@@ -1,9 +1,21 @@
 import { useState, useEffect } from 'react'
 
+// The next free asset id = highest existing id + 1. (assets.nextAssetId is an
+// Option that is None on this chain, so we can't rely on it.)
+export async function nextFreeAssetId(api) {
+  try {
+    const entries = await api.query.assets.asset.entries()
+    const ids = entries.map(([k]) => k.args[0].toNumber())
+    return (ids.length ? Math.max(...ids) : 0) + 1
+  } catch {
+    return Math.floor(Math.random() * 9_000_000) + 1_000_000
+  }
+}
+
 function Section({ title, children }) {
   return (
-    <div style={{ background: '#111520', border: '0.5px solid #1e2433', borderRadius: 10, padding: 20, marginBottom: 12 }}>
-      <div style={{ fontSize: 11, color: '#8891a8', letterSpacing: 1, textTransform: 'uppercase', fontWeight: 600, marginBottom: 16 }}>{title}</div>
+    <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: 10, padding: 20, marginBottom: 12 }}>
+      <div style={{ fontSize: 11, color: 'var(--text2)', letterSpacing: 1, textTransform: 'uppercase', fontWeight: 600, marginBottom: 16 }}>{title}</div>
       {children}
     </div>
   )
@@ -12,7 +24,7 @@ function Section({ title, children }) {
 function Field({ label, value, onChange, placeholder, type = 'text', hint }) {
   return (
     <div style={{ marginBottom: 14 }}>
-      <div style={{ fontSize: 12, color: '#8891a8', marginBottom: 5, fontWeight: 500 }}>{label}</div>
+      <div style={{ fontSize: 12, color: 'var(--text2)', marginBottom: 5, fontWeight: 500 }}>{label}</div>
       <input
         type={type}
         value={value}
@@ -20,15 +32,15 @@ function Field({ label, value, onChange, placeholder, type = 'text', hint }) {
         placeholder={placeholder}
         style={{
           width: '100%', padding: '9px 12px',
-          background: '#0a0d13', border: '0.5px solid #1e2433',
-          borderRadius: 8, fontSize: 13, color: '#e0e2ea',
+          background: 'var(--bg0)', border: '0.5px solid var(--border)',
+          borderRadius: 8, fontSize: 13, color: 'var(--text)',
           outline: 'none', fontFamily: type === 'number' ? 'JetBrains Mono, monospace' : 'Inter, sans-serif',
           transition: 'border-color 0.15s',
         }}
         onFocus={e => e.target.style.borderColor = '#c9a84c'}
-        onBlur={e => e.target.style.borderColor = '#1e2433'}
+        onBlur={e => e.target.style.borderColor = 'var(--border)'}
       />
-      {hint && <div style={{ fontSize: 11, color: '#4a5266', marginTop: 4 }}>{hint}</div>}
+      {hint && <div style={{ fontSize: 11, color: 'var(--text4)', marginTop: 4 }}>{hint}</div>}
     </div>
   )
 }
@@ -40,7 +52,7 @@ function TokenCard({ token, onMint, onBurn, wallet }) {
   const [expanded, setExpanded] = useState(false)
 
   return (
-    <div style={{ background: '#0e1117', border: '0.5px solid #1e2433', borderRadius: 10, padding: 16, marginBottom: 10 }}>
+    <div style={{ background: 'var(--bg1)', border: '0.5px solid var(--border)', borderRadius: 10, padding: 16, marginBottom: 10 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }} onClick={() => setExpanded(!expanded)}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{
@@ -53,36 +65,36 @@ function TokenCard({ token, onMint, onBurn, wallet }) {
             {token.symbol?.[0] || '?'}
           </div>
           <div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: '#e0e2ea' }}>{token.name}</div>
-            <div style={{ fontSize: 12, fontFamily: 'JetBrains Mono, monospace', color: '#6b7591' }}>{token.symbol} · ID #{token.id}</div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{token.name}</div>
+            <div style={{ fontSize: 12, fontFamily: 'JetBrains Mono, monospace', color: 'var(--text3)' }}>{token.symbol} · ID #{token.id}</div>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: '#c9a84c', fontFamily: 'JetBrains Mono, monospace' }}>{token.supply || '—'}</div>
-            <div style={{ fontSize: 11, color: '#4a5266' }}>supply</div>
+            <div style={{ fontSize: 11, color: 'var(--text4)' }}>supply</div>
           </div>
-          <span style={{ color: '#4a5266', fontSize: 12 }}>{expanded ? '▲' : '▼'}</span>
+          <span style={{ color: 'var(--text4)', fontSize: 12 }}>{expanded ? '▲' : '▼'}</span>
         </div>
       </div>
 
       {expanded && (
-        <div style={{ marginTop: 14, paddingTop: 14, borderTop: '0.5px solid #1e2433' }}>
+        <div style={{ marginTop: 14, paddingTop: 14, borderTop: '0.5px solid var(--border)' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
-              <div style={{ fontSize: 11, color: '#8891a8', marginBottom: 8, fontWeight: 600 }}>MINT</div>
-              <input value={toAddr} onChange={e => setToAddr(e.target.value)} placeholder="Recipient address" style={{ width: '100%', padding: '7px 10px', background: '#0a0d13', border: '0.5px solid #1e2433', borderRadius: 6, fontSize: 12, color: '#e0e2ea', outline: 'none', marginBottom: 6, fontFamily: 'JetBrains Mono, monospace' }} />
+              <div style={{ fontSize: 11, color: 'var(--text2)', marginBottom: 8, fontWeight: 600 }}>MINT</div>
+              <input value={toAddr} onChange={e => setToAddr(e.target.value)} placeholder="Recipient address" style={{ width: '100%', padding: '7px 10px', background: 'var(--bg0)', border: '0.5px solid var(--border)', borderRadius: 6, fontSize: 12, color: 'var(--text)', outline: 'none', marginBottom: 6, fontFamily: 'JetBrains Mono, monospace' }} />
               <div style={{ display: 'flex', gap: 6 }}>
-                <input value={mintAmt} onChange={e => setMintAmt(e.target.value)} placeholder="Amount" type="number" style={{ flex: 1, padding: '7px 10px', background: '#0a0d13', border: '0.5px solid #1e2433', borderRadius: 6, fontSize: 12, color: '#e0e2ea', outline: 'none', fontFamily: 'JetBrains Mono, monospace' }} />
-                <button onClick={() => onMint(token.id, toAddr, mintAmt)} style={{ padding: '7px 12px', background: '#0d1f18', border: '0.5px solid #1d3d2a', borderRadius: 6, fontSize: 12, color: '#4caf82', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>Mint</button>
+                <input value={mintAmt} onChange={e => setMintAmt(e.target.value)} placeholder="Amount" type="number" style={{ flex: 1, padding: '7px 10px', background: 'var(--bg0)', border: '0.5px solid var(--border)', borderRadius: 6, fontSize: 12, color: 'var(--text)', outline: 'none', fontFamily: 'JetBrains Mono, monospace' }} />
+                <button onClick={() => onMint(token.id, toAddr, mintAmt)} style={{ padding: '7px 12px', background: 'var(--ok-bg)', border: '0.5px solid var(--ok-border)', borderRadius: 6, fontSize: 12, color: '#4caf82', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>Mint</button>
               </div>
             </div>
             <div>
-              <div style={{ fontSize: 11, color: '#8891a8', marginBottom: 8, fontWeight: 600 }}>BURN</div>
-              <div style={{ fontSize: 11, color: '#4a5266', marginBottom: 6 }}>Burns from your wallet</div>
+              <div style={{ fontSize: 11, color: 'var(--text2)', marginBottom: 8, fontWeight: 600 }}>BURN</div>
+              <div style={{ fontSize: 11, color: 'var(--text4)', marginBottom: 6 }}>Burns from your wallet</div>
               <div style={{ display: 'flex', gap: 6, marginTop: 22 }}>
-                <input value={burnAmt} onChange={e => setBurnAmt(e.target.value)} placeholder="Amount" type="number" style={{ flex: 1, padding: '7px 10px', background: '#0a0d13', border: '0.5px solid #1e2433', borderRadius: 6, fontSize: 12, color: '#e0e2ea', outline: 'none', fontFamily: 'JetBrains Mono, monospace' }} />
-                <button onClick={() => onBurn(token.id, burnAmt)} style={{ padding: '7px 12px', background: '#1f0d0d', border: '0.5px solid #3d1a1a', borderRadius: 6, fontSize: 12, color: '#e05c5c', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>Burn</button>
+                <input value={burnAmt} onChange={e => setBurnAmt(e.target.value)} placeholder="Amount" type="number" style={{ flex: 1, padding: '7px 10px', background: 'var(--bg0)', border: '0.5px solid var(--border)', borderRadius: 6, fontSize: 12, color: 'var(--text)', outline: 'none', fontFamily: 'JetBrains Mono, monospace' }} />
+                <button onClick={() => onBurn(token.id, burnAmt)} style={{ padding: '7px 12px', background: 'var(--err-bg)', border: '0.5px solid var(--err-border)', borderRadius: 6, fontSize: 12, color: '#e05c5c', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>Burn</button>
               </div>
             </div>
           </div>
@@ -182,9 +194,9 @@ export function TokenStudio({ wallet, api, getSigner: getSignerProp }) {
     setLoading(true)
     try {
       const signer = await getSigner(wallet.address)
-      // Get next asset ID
-      const nextId = (await api.query.assets.nextAssetId?.()) || Math.floor(Math.random() * 9000) + 1000
-      const id = typeof nextId === 'object' ? nextId.toNumber() : nextId
+      // Pick a free asset id. nextAssetId is an Option that is None on this
+      // chain, so derive the next id from the highest existing asset id.
+      const id = await nextFreeAssetId(api)
 
       // Batch: create + setMetadata + mint
       const txs = [
@@ -236,8 +248,8 @@ export function TokenStudio({ wallet, api, getSigner: getSignerProp }) {
   const tabStyle = (t) => ({
     padding: '8px 20px', borderRadius: 8, fontSize: 13, fontWeight: 600,
     cursor: 'pointer', border: 'none', fontFamily: 'Inter, sans-serif',
-    background: tab === t ? '#c9a84c' : '#111520',
-    color: tab === t ? '#0a0d13' : '#6b7591',
+    background: tab === t ? '#c9a84c' : 'var(--bg2)',
+    color: tab === t ? 'var(--bg0)' : 'var(--text3)',
     transition: 'all 0.15s',
   })
 
@@ -245,17 +257,17 @@ export function TokenStudio({ wallet, api, getSigner: getSignerProp }) {
     <div className="fadein" style={{ padding: '32px 40px', maxWidth: 900, margin: '0 auto' }}>
 
       {!wallet && (
-        <div style={{ padding: '40px', textAlign: 'center', background: '#111520', border: '0.5px solid #1e2433', borderRadius: 10, marginBottom: 16 }}>
+        <div style={{ padding: '40px', textAlign: 'center', background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: 10, marginBottom: 16 }}>
           <div style={{ fontSize: 32, marginBottom: 12 }}>🪙</div>
-          <div style={{ fontSize: 15, color: '#8891a8' }}>Connect your wallet to create and manage tokens</div>
+          <div style={{ fontSize: 15, color: 'var(--text2)' }}>Connect your wallet to create and manage tokens</div>
         </div>
       )}
 
       {msg && (
         <div style={{
           padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 13,
-          background: msg.type === 'ok' ? '#0d1f18' : '#1f0d0d',
-          border: `0.5px solid ${msg.type === 'ok' ? '#1d3d2a' : '#3d1a1a'}`,
+          background: msg.type === 'ok' ? 'var(--ok-bg)' : 'var(--err-bg)',
+          border: `0.5px solid ${msg.type === 'ok' ? 'var(--ok-border)' : 'var(--err-border)'}`,
           color: msg.type === 'ok' ? '#4caf82' : '#e05c5c',
         }}>{msg.text}</div>
       )}
@@ -283,15 +295,15 @@ export function TokenStudio({ wallet, api, getSigner: getSignerProp }) {
 
               {/* Preview */}
               {(name || symbol) && (
-                <div style={{ background: '#0a0d13', border: '0.5px solid #1e2433', borderRadius: 8, padding: 14, marginTop: 4 }}>
-                  <div style={{ fontSize: 11, color: '#4a5266', marginBottom: 8 }}>PREVIEW</div>
+                <div style={{ background: 'var(--bg0)', border: '0.5px solid var(--border)', borderRadius: 8, padding: 14, marginTop: 4 }}>
+                  <div style={{ fontSize: 11, color: 'var(--text4)', marginBottom: 8 }}>PREVIEW</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg, #c9a84c33, #5b8fe833)', border: '0.5px solid #c9a84c44', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#c9a84c' }}>
                       {symbol?.[0] || name?.[0] || '?'}
                     </div>
                     <div>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: '#e0e2ea' }}>{name || '—'}</div>
-                      <div style={{ fontSize: 12, color: '#6b7591', fontFamily: 'JetBrains Mono, monospace' }}>{symbol || '—'} · {supply ? parseInt(supply).toLocaleString() : '0'} supply</div>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{name || '—'}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text3)', fontFamily: 'JetBrains Mono, monospace' }}>{symbol || '—'} · {supply ? parseInt(supply).toLocaleString() : '0'} supply</div>
                     </div>
                   </div>
                 </div>
@@ -299,21 +311,21 @@ export function TokenStudio({ wallet, api, getSigner: getSignerProp }) {
             </div>
           </div>
 
-          <div style={{ marginTop: 8, paddingTop: 16, borderTop: '0.5px solid #1e2433' }}>
+          <div style={{ marginTop: 8, paddingTop: 16, borderTop: '0.5px solid var(--border)' }}>
             <button
               onClick={createToken}
               disabled={loading || !wallet || !name || !symbol || !supply}
               style={{
-                padding: '10px 24px', background: loading || !wallet ? '#1a1f2e' : '#c9a84c',
+                padding: '10px 24px', background: loading || !wallet ? 'var(--bg3)' : '#c9a84c',
                 border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600,
-                color: loading || !wallet ? '#4a5266' : '#0a0d13',
+                color: loading || !wallet ? 'var(--text4)' : 'var(--bg0)',
                 cursor: loading || !wallet ? 'not-allowed' : 'pointer',
                 fontFamily: 'Inter, sans-serif', transition: 'all 0.15s',
               }}
             >
               {loading ? 'Creating...' : '🪙 Create Token'}
             </button>
-            <div style={{ fontSize: 12, color: '#4a5266', marginTop: 8 }}>
+            <div style={{ fontSize: 12, color: 'var(--text4)', marginTop: 8 }}>
               This will sign 3 transactions: create → set metadata → mint initial supply
             </div>
           </div>
@@ -323,25 +335,25 @@ export function TokenStudio({ wallet, api, getSigner: getSignerProp }) {
       {tab === 'transfer' && (
         <Section title="Send Tokens">
           <div style={{ marginBottom: 14 }}>
-            <div style={{ fontSize: 12, color: '#8891a8', marginBottom: 5 }}>Select Token *</div>
+            <div style={{ fontSize: 12, color: 'var(--text2)', marginBottom: 5 }}>Select Token *</div>
             {tokens.length === 0 ? (
-              <div style={{ fontSize: 13, color: '#4a5266', padding: '10px 0' }}>No tokens found — create one first or click Manage Tokens → Refresh</div>
+              <div style={{ fontSize: 13, color: 'var(--text4)', padding: '10px 0' }}>No tokens found — create one first or click Manage Tokens → Refresh</div>
             ) : (
-              <select value={transferAssetId} onChange={e => setTransferAssetId(e.target.value)} style={{ width: '100%', padding: '9px 12px', background: '#0a0d13', border: '0.5px solid #1e2433', borderRadius: 8, fontSize: 13, color: '#e0e2ea', outline: 'none' }}>
+              <select value={transferAssetId} onChange={e => setTransferAssetId(e.target.value)} style={{ width: '100%', padding: '9px 12px', background: 'var(--bg0)', border: '0.5px solid var(--border)', borderRadius: 8, fontSize: 13, color: 'var(--text)', outline: 'none' }}>
                 <option value="">Choose a token...</option>
                 {tokens.map(t => <option key={t.id} value={t.id}>{t.symbol} — {t.name} (ID: {t.id})</option>)}
               </select>
             )}
           </div>
           <div style={{ marginBottom: 14 }}>
-            <div style={{ fontSize: 12, color: '#8891a8', marginBottom: 5 }}>Recipient Address *</div>
-            <input value={transferTo} onChange={e => setTransferTo(e.target.value)} placeholder="5EHmLt..." style={{ width: '100%', padding: '9px 12px', background: '#0a0d13', border: '0.5px solid #1e2433', borderRadius: 8, fontSize: 13, color: '#e0e2ea', outline: 'none', fontFamily: 'JetBrains Mono, monospace' }} />
+            <div style={{ fontSize: 12, color: 'var(--text2)', marginBottom: 5 }}>Recipient Address *</div>
+            <input value={transferTo} onChange={e => setTransferTo(e.target.value)} placeholder="5EHmLt..." style={{ width: '100%', padding: '9px 12px', background: 'var(--bg0)', border: '0.5px solid var(--border)', borderRadius: 8, fontSize: 13, color: 'var(--text)', outline: 'none', fontFamily: 'JetBrains Mono, monospace' }} />
           </div>
           <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 12, color: '#8891a8', marginBottom: 5 }}>Amount *</div>
-            <input value={transferAmt} onChange={e => setTransferAmt(e.target.value)} placeholder="1000" type="number" style={{ width: '100%', padding: '9px 12px', background: '#0a0d13', border: '0.5px solid #1e2433', borderRadius: 8, fontSize: 13, color: '#e0e2ea', outline: 'none', fontFamily: 'JetBrains Mono, monospace' }} />
+            <div style={{ fontSize: 12, color: 'var(--text2)', marginBottom: 5 }}>Amount *</div>
+            <input value={transferAmt} onChange={e => setTransferAmt(e.target.value)} placeholder="1000" type="number" style={{ width: '100%', padding: '9px 12px', background: 'var(--bg0)', border: '0.5px solid var(--border)', borderRadius: 8, fontSize: 13, color: 'var(--text)', outline: 'none', fontFamily: 'JetBrains Mono, monospace' }} />
           </div>
-          <button onClick={transferToken} disabled={loading || !transferAssetId || !transferTo || !transferAmt} style={{ padding: '10px 24px', background: loading ? '#1a1f2e' : '#c9a84c', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, color: loading ? '#4a5266' : '#0a0d13', cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'Inter, sans-serif' }}>
+          <button onClick={transferToken} disabled={loading || !transferAssetId || !transferTo || !transferAmt} style={{ padding: '10px 24px', background: loading ? 'var(--bg3)' : '#c9a84c', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, color: loading ? 'var(--text4)' : 'var(--bg0)', cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'Inter, sans-serif' }}>
             {loading ? 'Sending...' : 'Send Tokens'}
           </button>
         </Section>
@@ -350,7 +362,7 @@ export function TokenStudio({ wallet, api, getSigner: getSignerProp }) {
       {tab === 'manage' && (
         <Section title={`Your Tokens (${tokens.length})`}>
           {tokens.length === 0 ? (
-            <div style={{ fontSize: 13, color: '#4a5266', textAlign: 'center', padding: '20px 0' }}>
+            <div style={{ fontSize: 13, color: 'var(--text4)', textAlign: 'center', padding: '20px 0' }}>
               No tokens found on chain. Create one first.
             </div>
           ) : (
@@ -364,7 +376,7 @@ export function TokenStudio({ wallet, api, getSigner: getSignerProp }) {
               />
             ))
           )}
-          <button onClick={loadTokens} style={{ marginTop: 8, padding: '6px 14px', background: '#1a1f2e', border: '0.5px solid #1e2433', borderRadius: 6, fontSize: 12, color: '#8891a8', cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>
+          <button onClick={loadTokens} style={{ marginTop: 8, padding: '6px 14px', background: 'var(--bg3)', border: '0.5px solid var(--border)', borderRadius: 6, fontSize: 12, color: 'var(--text2)', cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>
             ↻ Refresh
           </button>
         </Section>

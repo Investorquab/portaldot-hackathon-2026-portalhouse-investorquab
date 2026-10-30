@@ -14,24 +14,25 @@ function timeAgo(ts) {
 }
 
 const METHOD_COLORS = {
-  balances: { color: '#4caf82', bg: '#0d1f18', border: '#1d3d2a' },
-  staking:  { color: '#c9a84c', bg: '#1a1508', border: '#3d3010' },
-  contracts:{ color: '#5b8fe8', bg: '#0d1525', border: '#1a2f50' },
+  balances: { color: '#4caf82', bg: 'var(--ok-bg)', border: 'var(--ok-border)' },
+  staking:  { color: '#c9a84c', bg: 'var(--warn-bg)', border: 'var(--warn-border)' },
+  contracts:{ color: '#5b8fe8', bg: 'var(--info-bg)', border: 'var(--info-border)' },
   identity: { color: '#a07ce8', bg: '#150d25', border: '#2d1a50' },
   assets:   { color: '#e8855b', bg: '#251508', border: '#503010' },
   bounties: { color: '#5be8c9', bg: '#081f1a', border: '#103d30' },
-  timestamp:{ color: '#4a5266', bg: '#111520', border: '#1e2433' },
-  default:  { color: '#8891a8', bg: '#111520', border: '#1e2433' },
+  timestamp:{ color: 'var(--text4)', bg: 'var(--bg2)', border: 'var(--border)' },
+  default:  { color: 'var(--text2)', bg: 'var(--bg2)', border: 'var(--border)' },
 }
 
 function MethodBadge({ method, call }) {
   const c = METHOD_COLORS[method] || METHOD_COLORS.default
   return (
-    <span style={{
-      display: 'inline-flex', padding: '2px 8px', borderRadius: 4,
+    <span title={`${method}.${call}`} style={{
+      display: 'inline-block', maxWidth: '100%', padding: '2px 8px', borderRadius: 4,
       fontSize: 10, fontFamily: 'JetBrains Mono, monospace',
       color: c.color, background: c.bg, border: `0.5px solid ${c.border}`,
-      flexShrink: 0, fontWeight: 500,
+      fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+      verticalAlign: 'middle',
     }}>
       {method}.{call}
     </span>
@@ -122,23 +123,23 @@ export function Transactions({ api, recentTxs, bestBlock }) {
           { label: 'Asset Ops', value: txs.filter(t => t.method === 'assets').length },
           { label: 'Contracts', value: txs.filter(t => t.method === 'contracts').length },
         ].map(({ label, value }) => (
-          <div key={label} style={{ background: '#111520', border: '0.5px solid #1e2433', borderRadius: 10, padding: 16 }}>
-            <div style={{ fontSize: 11, color: '#8891a8', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 }}>{label}</div>
-            <div style={{ fontSize: 24, fontWeight: 600, fontFamily: 'JetBrains Mono, monospace', color: '#e0e2ea' }}>{value}</div>
+          <div key={label} style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: 10, padding: 16 }}>
+            <div style={{ fontSize: 11, color: 'var(--text2)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 }}>{label}</div>
+            <div style={{ fontSize: 24, fontWeight: 600, fontFamily: 'JetBrains Mono, monospace', color: 'var(--text)' }}>{value}</div>
           </div>
         ))}
       </div>
 
       {/* Search */}
       <div style={{ position: 'relative', marginBottom: 12 }}>
-        <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#4a5266' }}>🔍</span>
+        <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text4)' }}>🔍</span>
         <input
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Search by method, block number, address, or hash..."
-          style={{ width: '100%', padding: '10px 12px 10px 36px', background: '#111520', border: '0.5px solid #1e2433', borderRadius: 8, fontSize: 13, color: '#e0e2ea', outline: 'none', fontFamily: 'JetBrains Mono, monospace' }}
+          style={{ width: '100%', padding: '10px 12px 10px 36px', background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: 8, fontSize: 13, color: 'var(--text)', outline: 'none', fontFamily: 'JetBrains Mono, monospace' }}
           onFocus={e => e.target.style.borderColor = '#c9a84c'}
-          onBlur={e => e.target.style.borderColor = '#1e2433'}
+          onBlur={e => e.target.style.borderColor = 'var(--border)'}
         />
       </div>
 
@@ -150,9 +151,9 @@ export function Transactions({ api, recentTxs, bestBlock }) {
           return (
             <button key={m} onClick={() => setFilter(m)} style={{
               padding: '5px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600,
-              cursor: 'pointer', border: active ? `0.5px solid ${c.border}` : '0.5px solid #1e2433',
-              background: active ? c.bg : '#111520',
-              color: active ? c.color : '#4a5266',
+              cursor: 'pointer', border: active ? `0.5px solid ${c.border}` : '0.5px solid var(--border)',
+              background: active ? c.bg : 'var(--bg2)',
+              color: active ? c.color : 'var(--text4)',
               fontFamily: 'Inter, sans-serif', textTransform: 'capitalize',
               transition: 'all 0.15s',
             }}>{m}</button>
@@ -160,7 +161,7 @@ export function Transactions({ api, recentTxs, bestBlock }) {
         })}
         <button onClick={scanHistory} disabled={loading} style={{
           marginLeft: 'auto', padding: '5px 12px', borderRadius: 6, fontSize: 12,
-          background: '#1a1f2e', border: '0.5px solid #1e2433', color: '#8891a8',
+          background: 'var(--bg3)', border: '0.5px solid var(--border)', color: 'var(--text2)',
           cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'Inter, sans-serif',
         }}>
           {loading ? 'Scanning...' : '↻ Refresh'}
@@ -168,16 +169,16 @@ export function Transactions({ api, recentTxs, bestBlock }) {
       </div>
 
       {/* Table */}
-      <div style={{ background: '#111520', border: '0.5px solid #1e2433', borderRadius: 10, overflow: 'hidden' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '160px 70px 1fr 100px 70px', padding: '10px 16px', borderBottom: '0.5px solid #1e2433', background: '#0e1117' }}>
+      <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '176px 56px minmax(0, 1fr) 104px 64px', padding: '10px 16px', borderBottom: '0.5px solid var(--border)', background: 'var(--bg1)' }}>
           {['Type', 'Block', 'Signer', 'Hash', 'Time'].map(h => (
-            <div key={h} style={{ fontSize: 11, color: '#4a5266', letterSpacing: 1, textTransform: 'uppercase', fontWeight: 600 }}>{h}</div>
+            <div key={h} style={{ fontSize: 11, color: 'var(--text4)', letterSpacing: 1, textTransform: 'uppercase', fontWeight: 600, textAlign: h === 'Time' ? 'right' : 'left' }}>{h}</div>
           ))}
         </div>
 
         {displayTxs.length === 0 ? (
           <div style={{ padding: 40, textAlign: 'center' }}>
-            <div style={{ fontSize: 13, color: '#4a5266', fontFamily: 'JetBrains Mono, monospace' }}>
+            <div style={{ fontSize: 13, color: 'var(--text4)', fontFamily: 'JetBrains Mono, monospace' }}>
               {loading ? 'Scanning blocks...' : 'No transactions found'}
             </div>
           </div>
@@ -185,19 +186,19 @@ export function Transactions({ api, recentTxs, bestBlock }) {
           <div style={{ maxHeight: 500, overflowY: 'auto' }}>
             {displayTxs.map((tx, i) => (
               <div key={tx.id} style={{
-                display: 'grid', gridTemplateColumns: '160px 70px 1fr 100px 70px',
+                display: 'grid', gridTemplateColumns: '176px 56px minmax(0, 1fr) 104px 64px',
                 padding: '10px 16px', alignItems: 'center',
-                borderBottom: i < displayTxs.length - 1 ? '0.5px solid #1a1f2e' : 'none',
+                borderBottom: i < displayTxs.length - 1 ? '0.5px solid var(--bg3)' : 'none',
                 transition: 'background 0.1s',
               }}
-                onMouseEnter={e => e.currentTarget.style.background = '#131824'}
+                onMouseEnter={e => e.currentTarget.style.background = 'var(--bg3)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
               >
-                <div><MethodBadge method={tx.method} call={tx.call} /></div>
+                <div style={{ minWidth: 0, overflow: 'hidden', paddingRight: 8 }}><MethodBadge method={tx.method} call={tx.call} /></div>
                 <div style={{ fontSize: 12, fontFamily: 'JetBrains Mono, monospace', color: '#c9a84c' }}>#{tx.block}</div>
-                <div style={{ fontSize: 12, fontFamily: 'JetBrains Mono, monospace', color: '#6b7591' }}>{tx.signer ? short(tx.signer) : '—'}</div>
-                <div style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: '#4a5266' }}>{tx.hash ? short(tx.hash, 8) : '—'}</div>
-                <div style={{ fontSize: 12, color: '#8891a8' }}>{timeAgo(tx.time)}</div>
+                <div style={{ fontSize: 12, fontFamily: 'JetBrains Mono, monospace', color: 'var(--text3)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: 8 }}>{tx.signer ? short(tx.signer) : '—'}</div>
+                <div style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: 'var(--text4)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: 8 }}>{tx.hash ? short(tx.hash, 6) : '—'}</div>
+                <div style={{ fontSize: 11, color: 'var(--text2)', whiteSpace: 'nowrap', textAlign: 'right' }}>{timeAgo(tx.time)}</div>
               </div>
             ))}
           </div>
@@ -206,7 +207,7 @@ export function Transactions({ api, recentTxs, bestBlock }) {
 
       <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
         <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4caf82', display: 'inline-block', animation: 'pulse 2s infinite' }} />
-        <span style={{ fontSize: 11, color: '#4a5266', fontFamily: 'JetBrains Mono, monospace' }}>
+        <span style={{ fontSize: 11, color: 'var(--text4)', fontFamily: 'JetBrains Mono, monospace' }}>
           {displayTxs.length} transactions · live updates every block
         </span>
       </div>
