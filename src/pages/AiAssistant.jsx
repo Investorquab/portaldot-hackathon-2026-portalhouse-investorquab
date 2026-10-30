@@ -126,7 +126,9 @@ export function AiAssistant({ wallet, api, recentTxs, chainInfo, bestBlock, getS
       if (action.type === 'transfer') {
         tx = api.tx.balances.transferKeepAlive(action.to, toPlanck(action.amount, decimals))
       } else if (action.type === 'createToken') {
-        const id = Math.floor(Math.random() * 9000) + 1000
+        let id
+        try { const n = await api.query.assets.nextAssetId?.(); id = n ? (typeof n === 'object' ? n.toNumber() : n) : null } catch {}
+        if (id == null) id = Math.floor(Math.random() * 9000) + 1000
         tx = api.tx.utility.batchAll([
           api.tx.assets.create(id, wallet.address, 1),
           api.tx.assets.setMetadata(id, action.name, action.symbol || action.name.slice(0,4).toUpperCase(), 12),

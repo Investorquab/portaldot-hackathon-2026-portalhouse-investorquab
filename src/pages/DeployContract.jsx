@@ -1,26 +1,45 @@
 import { useState } from 'react'
+import { CodePromise, Abi } from '@polkadot/api-contract'
 import { DEMO_CONTRACT } from '../evm/demoContract'
 import {
   PORTALDOT_EVM, ensurePortaldotChain, deployBytecode,
   waitForContractAddress, encodeUint256, explorerTx, explorerAddress, shortAddr,
 } from '../evm/portaldotEvm'
+import inkBundle from '../contracts/incrementer.contract.json'
 
 const GOLD = '#c9a84c'
 const BLUE = '#5b8fe8'
 const GREEN = '#4caf82'
 const RED = '#e05c5c'
+const SUB_EXPLORER = 'https://scanner-testnet-v3.portaldot.dev'
+
+const INK_SOURCE = `#[ink::contract]
+mod incrementer {
+    #[ink(storage)]
+    pub struct Incrementer { value: i32 }
+
+    impl Incrementer {
+        #[ink(constructor)]
+        pub fn new(init_value: i32) -> Self {
+            Self { value: init_value }
+        }
+        #[ink(message)]
+        pub fn inc(&mut self, by: i32) {
+            self.value = self.value.saturating_add(by);
+        }
+        #[ink(message)]
+        pub fn get(&self) -> i32 { self.value }
+    }
+}`
 
 /* ─────────────────────────── shared bits ─────────────────────────── */
 
-function Field({ label, value, onChange, placeholder, type, hint, mono }) {
+function Field({ label, value, onChange, placeholder, type, hint, mono, accent = GOLD }) {
   const base = { width: '100%', padding: '9px 12px', background: '#0a0d13', border: '0.5px solid #1e2433', borderRadius: 8, fontSize: 13, color: '#e0e2ea', outline: 'none', fontFamily: mono ? 'JetBrains Mono, monospace' : 'Inter, sans-serif' }
   return (
-    <div style={{ marginBottom: 14 }}>
+    <div style={{ marginBottom: 12 }}>
       <div style={{ fontSize: 12, color: '#8891a8', marginBottom: 5, fontWeight: 500 }}>{label}</div>
-      {type === 'textarea'
-        ? <textarea value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} rows={4} style={{ ...base, resize: 'vertical' }} onFocus={e => e.target.style.borderColor = GOLD} onBlur={e => e.target.style.borderColor = '#1e2433'} />
-        : <input type={type === 'bool' ? 'text' : type || 'text'} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} style={base} onFocus={e => e.target.style.borderColor = GOLD} onBlur={e => e.target.style.borderColor = '#1e2433'} />
-      }
+      <input type={type || 'text'} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} style={base} onFocus={e => e.target.style.borderColor = accent} onBlur={e => e.target.style.borderColor = '#1e2433'} />
       {hint && <div style={{ fontSize: 11, color: '#4a5266', marginTop: 4 }}>{hint}</div>}
     </div>
   )
@@ -30,11 +49,15 @@ function Pill({ color, children }) {
   return <span style={{ display: 'inline-flex', padding: '3px 9px', borderRadius: 5, fontSize: 11, color, background: color + '18', border: `0.5px solid ${color}33`, fontFamily: 'JetBrains Mono, monospace' }}>{children}</span>
 }
 
-/* ─────────────────────────── EVM one-click deploy ─────────────────────────── */
+function btn(bg, color, border) {
+  return { padding: '8px 14px', background: bg, border: `0.5px solid ${border}`, borderRadius: 8, fontSize: 12, color, cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontWeight: 600 }
+}
+
+/* ─────────────────────────── EVM: compile + deploy ─────────────────────────── */
 
 function EvmDeploy({ evmWallet, onConnectEvm }) {
   const [initialCount, setInitialCount] = useState('42')
-  const [phase, setPhase] = useState('idle') // idle | signing | mining | done
+  const [phase, setPhase] = useState('idle')
   const [txHash, setTxHash] = useState(null)
   const [address, setAddress] = useState(null)
   const [error, setError] = useState(null)
@@ -46,20 +69,17 @@ function EvmDeploy({ evmWallet, onConnectEvm }) {
   const deploy = async () => {
     setError(null)
     if (!evmWallet) { onConnectEvm(); return }
-    let args
-    try { args = encodeUint256(initialCount) } catch (e) { setError(e.message); return }
+    let argsHex
+    try { argsHex = encodeUint256(initialCount) } catch (e) { setError(e.message); return }
     try {
       setPhase('signing')
       await ensurePortaldotChain(evmWallet.provider)
-      const hash = await deployBytecode(evmWallet.provider, evmWallet.address, DEMO_CONTRACT.bytecode, args)
-      setTxHash(hash)
-      setPhase('mining')
+      const hash = await deployBytecode(evmWallet.provider, evmWallet.address, DEMO_CONTRACT.bytecode, argsHex)
+      setTxHash(hash); setPhase('mining')
       const addr = await waitForContractAddress(evmWallet.provider, hash)
-      setAddress(addr)
-      setPhase('done')
+      setAddress(addr); setPhase('done')
     } catch (e) {
-      const m = e?.code === 4001 ? 'You rejected the transaction in your wallet.' : (e?.message || String(e))
-      setError(m)
+      setError(e?.code === 4001 ? 'You rejected the transaction in your wallet.' : (e?.message || String(e)))
       setPhase('idle')
     }
   }
@@ -69,26 +89,27 @@ function EvmDeploy({ evmWallet, onConnectEvm }) {
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: 16, alignItems: 'start' }}>
-      {/* Left — the contract source, the thing being deployed */}
+      {/* Left — the real compiled contract source */}
       <div style={{ background: '#0b0f17', border: `0.5px solid ${BLUE}22`, borderRadius: 12, overflow: 'hidden' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '0.5px solid #1e2433', background: '#0e1320' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ width: 8, height: 8, borderRadius: 2, background: BLUE, display: 'inline-block' }} />
+            <span style={{ width: 8, height: 8, borderRadius: 2, background: BLUE }} />
             <span style={{ fontSize: 13, fontWeight: 600, color: '#e0e2ea', fontFamily: 'JetBrains Mono, monospace' }}>{DEMO_CONTRACT.name}.sol</span>
           </div>
           <Pill color={BLUE}>{DEMO_CONTRACT.compiler}</Pill>
         </div>
-        <pre style={{ margin: 0, padding: 16, fontSize: 12, lineHeight: 1.65, color: '#9aa4bd', fontFamily: 'JetBrains Mono, monospace', overflowX: 'auto', maxHeight: 360 }}>{DEMO_CONTRACT.source}</pre>
+        <pre style={{ margin: 0, padding: 16, fontSize: 12, lineHeight: 1.6, color: '#9aa4bd', fontFamily: 'JetBrains Mono, monospace', overflowX: 'auto', maxHeight: 360 }}>{DEMO_CONTRACT.source}</pre>
+        <div style={{ padding: '8px 16px', borderTop: '0.5px solid #1e2433', fontSize: 11, color: '#6b7591', fontFamily: 'JetBrains Mono, monospace' }}>
+          Compiled with {DEMO_CONTRACT.compiler} · {(DEMO_CONTRACT.bytecode.length - 2) / 2} bytes of real EVM bytecode
+        </div>
       </div>
 
       {/* Right — configure + deploy */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div style={{ background: '#111520', border: '0.5px solid #1e2433', borderRadius: 12, padding: 18 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: '#e0e2ea', marginBottom: 4 }}>One number to set</div>
-          <div style={{ fontSize: 12, color: '#6b7591', marginBottom: 14, lineHeight: 1.5 }}>
-            The constructor stores this starting count on-chain. Change it, then deploy — nothing else to edit.
-          </div>
-          <Field label="initialCount (uint256)" value={initialCount} onChange={setInitialCount} placeholder="42" type="number" mono hint="Any whole number ≥ 0" />
+          <div style={{ fontSize: 13, fontWeight: 600, color: '#e0e2ea', marginBottom: 4 }}>Constructor</div>
+          <div style={{ fontSize: 12, color: '#6b7591', marginBottom: 12 }}>initialCount (uint256) — the starting value stored on-chain. Set it, then deploy.</div>
+          <Field label="initialCount (uint256)" value={initialCount} onChange={setInitialCount} placeholder="42" type="number" mono accent={BLUE} hint="Whole number ≥ 0" />
 
           {phase === 'done' ? (
             <div style={{ background: '#0d1f18', border: `0.5px solid ${GREEN}44`, borderRadius: 10, padding: 16 }}>
@@ -104,16 +125,8 @@ function EvmDeploy({ evmWallet, onConnectEvm }) {
             </div>
           ) : (
             <>
-              <button
-                onClick={deploy}
-                disabled={busy}
-                style={{
-                  width: '100%', padding: '12px', borderRadius: 10, border: 'none',
-                  background: busy ? '#1a2640' : BLUE, color: busy ? '#6b7591' : '#07101f',
-                  fontSize: 14, fontWeight: 700, cursor: busy ? 'wait' : 'pointer',
-                  fontFamily: 'Inter, sans-serif', transition: 'all 0.15s',
-                }}
-              >
+              <button onClick={deploy} disabled={busy}
+                style={{ width: '100%', padding: '12px', borderRadius: 10, border: 'none', background: busy ? '#1a2640' : BLUE, color: busy ? '#6b7591' : '#07101f', fontSize: 14, fontWeight: 700, cursor: busy ? 'wait' : 'pointer' }}>
                 {phase === 'signing' ? 'Confirm in your wallet…' : phase === 'mining' ? 'Deploying — mining block…' : evmWallet ? 'Deploy & Sign' : 'Connect EVM wallet to deploy'}
               </button>
               {busy && (
@@ -127,7 +140,6 @@ function EvmDeploy({ evmWallet, onConnectEvm }) {
           )}
         </div>
 
-        {/* Wallet status */}
         <div style={{ background: '#0e1320', border: `0.5px solid ${BLUE}22`, borderRadius: 12, padding: 14 }}>
           {evmWallet ? (
             <>
@@ -152,164 +164,193 @@ function EvmDeploy({ evmWallet, onConnectEvm }) {
   )
 }
 
-/* ─────────────────────────── Substrate ink! / WASM ─────────────────────────── */
+/* ─────────────────────────── Substrate: real ink! deploy via CodePromise ─────────────────────────── */
 
-const TEMPLATES = [
-  { id: 'flipper', name: 'Flipper', description: 'The simplest ink! contract — a boolean that flips. Good for a first look.', size: '4.2KB', icon: '🔄' },
-  { id: 'erc20', name: 'ERC20 Token', description: 'A standard fungible token contract with name, symbol, and supply.', size: '18.4KB', icon: '🪙' },
-  { id: 'custom', name: 'Custom WASM', description: 'Upload your own compiled ink! .wasm (+ optional ABI) for a real on-chain deploy.', size: '—', icon: '📜' },
-]
-
-function btn(bg, color, border) {
-  return { padding: '8px 14px', background: bg, border: `0.5px solid ${border}`, borderRadius: 8, fontSize: 12, color, cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontWeight: 600 }
+// Value-driven coercion so a text field maps to the right JS type for SCALE
+// encoding: booleans, integers (Number, or BigInt when large), else string.
+function coerceArg(raw) {
+  const s = String(raw ?? '').trim()
+  if (s === 'true') return true
+  if (s === 'false') return false
+  if (/^-?\d+$/.test(s)) {
+    const n = BigInt(s)
+    return (n > 9007199254740991n || n < -9007199254740991n) ? n : Number(n)
+  }
+  return raw
 }
 
-function SubstrateDeploy({ wallet, api, getSigner }) {
-  const [selected, setSelected] = useState(null)
-  const [customWasm, setCustomWasm] = useState(null)
-  const [customAbi, setCustomAbi] = useState(null)
-  const [deploying, setDeploying] = useState(false)
-  const [deployedAddress, setDeployedAddress] = useState(null)
-  const [msg, setMsg] = useState(null)
-  const [gasLimit, setGasLimit] = useState('10000000000')
+function SubstrateDeploy({ wallet, api, getSigner, decimals, tokenSymbol }) {
+  // Pre-fill the first constructor arg with a sample so the bundled contract is
+  // deploy-ready. Arg names come from the ink! metadata (e.g. initValue).
+  const defaultArgs = (abiInstance, ctorIdx = 0) => {
+    const o = {}
+    try { (abiInstance.constructors[ctorIdx]?.args || []).forEach((a, i) => { o[a.name] = i === 0 ? '42' : '' }) } catch {}
+    return o
+  }
+  const [tab, setTab] = useState('bundled') // bundled | upload
+  const [abi, setAbi] = useState(() => { try { return new Abi(inkBundle) } catch { return null } })
+  const [bundle, setBundle] = useState(inkBundle)
+  const [ctorIndex, setCtorIndex] = useState(0)
+  const [args, setArgs] = useState(() => { try { return defaultArgs(new Abi(inkBundle)) } catch { return {} } })
+  const [refTime, setRefTime] = useState('100000000000')
+  const [proofSize, setProofSize] = useState('1000000')
   const [endowment, setEndowment] = useState('0')
+  const [deploying, setDeploying] = useState(false)
+  const [estimating, setEstimating] = useState(false)
+  const [result, setResult] = useState(null)
+  const [msg, setMsg] = useState(null)
 
-  const showMsg = (type, text) => { setMsg({ type, text }); setTimeout(() => setMsg(null), 6000) }
+  const showMsg = (type, text) => { setMsg({ type, text }); if (type === 'ok') setTimeout(() => setMsg(null), 8000) }
 
-  const handleWasm = (e) => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = ev => setCustomWasm(ev.target.result); r.readAsArrayBuffer(f) }
-  const handleAbi = (e) => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = ev => { try { setCustomAbi(JSON.parse(ev.target.result)) } catch { showMsg('err', 'Invalid JSON file') } }; r.readAsText(f) }
+  const constructors = abi ? abi.constructors : []
+  const ctor = constructors[ctorIndex]
+
+  const loadUpload = async (file) => {
+    if (!file) return
+    try {
+      const text = await file.text()
+      const json = JSON.parse(text)
+      const a = new Abi(json)
+      setAbi(a); setBundle(json); setCtorIndex(0); setArgs({}); setResult(null)
+      showMsg('ok', `Loaded ${json.contract?.name || 'contract'} · ${a.constructors.length} constructor(s)`)
+    } catch (e) { showMsg('err', 'Could not read .contract/.json: ' + e.message) }
+  }
+
+  const buildArgs = () => (ctor.args || []).map(a => coerceArg(args[a.name]))
+  const toPlanck = (amount) => { const [w, f = ''] = String(amount).trim().split('.'); return BigInt((w || '0') + (f + '0'.repeat(decimals)).slice(0, decimals)) }
+
+  const estimateGas = async () => {
+    if (!wallet || !api) return showMsg('err', 'Connect your Substrate wallet first')
+    setEstimating(true)
+    try {
+      const wasm = bundle.source?.wasm
+      const data = ctor.toU8a(buildArgs())
+      const salt = '0x' + Array.from({ length: 4 }, () => Math.floor(Math.random() * 256).toString(16).padStart(2, '0')).join('')
+      const res = await api.call.contractsApi.instantiate(wallet.address, toPlanck(endowment), null, null, { Upload: wasm }, data, salt)
+      const j = res.toJSON()
+      if (res.result.isErr) { showMsg('err', 'Dry-run failed: ' + JSON.stringify(j.result)); setEstimating(false); return }
+      setRefTime(String(Math.ceil(Number(j.gasRequired.refTime) * 1.3)))
+      setProofSize(String(Math.ceil(Number(j.gasRequired.proofSize) * 1.3)))
+      showMsg('ok', 'Gas estimated from a dry-run (+30% headroom).')
+    } catch (e) { showMsg('err', 'Estimate failed: ' + e.message) }
+    setEstimating(false)
+  }
 
   const deploy = async () => {
-    if (!wallet) return showMsg('err', 'Connect your Substrate wallet first')
-    if (selected?.id !== 'custom') {
-      // Templates are a simulated walkthrough — no bundled WASM artifact.
-      setDeploying(true)
-      await new Promise(r => setTimeout(r, 1600))
-      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz123456789'
-      setDeployedAddress('5' + Array.from({ length: 47 }, () => chars[Math.floor(Math.random() * chars.length)]).join(''))
-      setDeploying(false)
-      return
-    }
-    if (!customWasm) return showMsg('err', 'Upload a .wasm file first')
-    if (!api) return showMsg('err', 'Node not connected')
-    setDeploying(true)
+    if (!wallet || !api) return showMsg('err', 'Connect your Substrate wallet first')
+    setDeploying(true); setResult(null)
     try {
       const signer = await getSigner(wallet.address)
-      const wasmHex = '0x' + Array.from(new Uint8Array(customWasm)).map(b => b.toString(16).padStart(2, '0')).join('')
-      let selector = '0x9bae9d5e'
-      if (customAbi?.spec?.constructors?.[0]?.selector) selector = customAbi.spec.constructors[0].selector
-      const gas = api.registry.createType('WeightV2', { refTime: BigInt(gasLimit || '10000000000'), proofSize: 5_000_000 })
-      const salt = '0x' + Array.from({ length: 8 }, () => Math.floor(Math.random() * 256).toString(16).padStart(2, '0')).join('')
+      const wasm = bundle.source?.wasm
+      const code = new CodePromise(api, abi, wasm)
+      const gasLimit = api.registry.createType('WeightV2', { refTime: BigInt(refTime), proofSize: BigInt(proofSize) })
+      const tx = code.tx[ctor.method]({ gasLimit, storageDepositLimit: null, value: toPlanck(endowment) }, ...buildArgs())
       await new Promise((resolve, reject) => {
-        api.tx.contracts.instantiateWithCode(endowment, gas, null, wasmHex, selector, salt)
-          .signAndSend(wallet.address, { signer }, ({ status, events, dispatchError }) => {
-            if (dispatchError) { reject(new Error(dispatchError.toString())); return }
-            if (status.isInBlock) {
-              let addr = null
-              events.forEach(({ event }) => { if (event.section === 'contracts' && event.method === 'Instantiated') addr = event.data[1].toString() })
-              setDeployedAddress(addr || 'Deployed — see Contract Registry')
-              resolve()
-            }
-          })
+        tx.signAndSend(wallet.address, { signer }, (r) => {
+          if (r.dispatchError) {
+            const e = r.dispatchError.isModule ? api.registry.findMetaError(r.dispatchError.asModule) : null
+            reject(new Error(e ? `${e.section}.${e.name}` : r.dispatchError.toString())); return
+          }
+          if (r.status.isInBlock) {
+            let addr = r.contract?.address?.toString() || null
+            if (!addr) r.events.forEach(({ event }) => { if (event.section === 'contracts' && event.method === 'Instantiated') addr = event.data[1].toString() })
+            setResult({ address: addr || 'Deployed — check the explorer', txHash: r.txHash.toHex() })
+            resolve()
+          }
+        })
       })
-    } catch (err) { showMsg('err', err.message) }
+    } catch (e) { showMsg('err', 'Deploy failed: ' + e.message) }
     setDeploying(false)
   }
 
-  if (deployedAddress) return (
-    <div style={{ background: '#0d1f18', border: `0.5px solid ${GREEN}44`, borderRadius: 12, padding: 32, textAlign: 'center', maxWidth: 560, margin: '0 auto' }}>
+  if (result) return (
+    <div style={{ background: '#1a1508', border: `0.5px solid ${GOLD}55`, borderRadius: 12, padding: 32, textAlign: 'center', maxWidth: 600, margin: '0 auto' }}>
       <div style={{ fontSize: 40, marginBottom: 12 }}>✅</div>
-      <div style={{ fontSize: 18, fontWeight: 700, color: GREEN, marginBottom: 6 }}>Contract deployed</div>
-      <div style={{ fontSize: 12, color: '#6b7591', marginBottom: 18 }}>{selected?.name} on Portaldot V3 {selected?.id !== 'custom' && '(simulated)'}</div>
-      <div style={{ background: '#111520', border: '0.5px solid #1e2433', borderRadius: 8, padding: 14, marginBottom: 16, textAlign: 'left' }}>
+      <div style={{ fontSize: 18, fontWeight: 700, color: GOLD, marginBottom: 6 }}>ink! contract deployed</div>
+      <div style={{ fontSize: 12, color: '#6b7591', marginBottom: 18 }}>{bundle.contract?.name} · {ctor.method} on Portaldot V3</div>
+      <div style={{ background: '#111520', border: '0.5px solid #1e2433', borderRadius: 8, padding: 14, marginBottom: 14, textAlign: 'left' }}>
         <div style={{ fontSize: 10, color: '#4a5266', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 5 }}>Contract address</div>
-        <div style={{ fontSize: 12, fontFamily: 'JetBrains Mono, monospace', color: GOLD, wordBreak: 'break-all' }}>{deployedAddress}</div>
+        <div style={{ fontSize: 12, fontFamily: 'JetBrains Mono, monospace', color: GOLD, wordBreak: 'break-all' }}>{result.address}</div>
       </div>
-      <button onClick={() => { setDeployedAddress(null); setSelected(null); setCustomWasm(null); setCustomAbi(null) }} style={btn(GOLD, '#0a0d13', GOLD)}>Deploy another</button>
-    </div>
-  )
-
-  if (selected) return (
-    <div>
-      <button onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', color: GOLD, cursor: 'pointer', fontSize: 13, marginBottom: 16 }}>← Back</button>
-      {msg && <div style={{ padding: '10px 14px', borderRadius: 8, marginBottom: 14, fontSize: 13, background: msg.type === 'ok' ? '#0d1f18' : '#1f0d0d', border: `0.5px solid ${msg.type === 'ok' ? '#1d3d2a' : '#3d1a1a'}`, color: msg.type === 'ok' ? GREEN : RED }}>{msg.text}</div>}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-        <div style={{ background: '#111520', border: '0.5px solid #1e2433', borderRadius: 12, padding: 22 }}>
-          <div style={{ fontSize: 32, marginBottom: 10 }}>{selected.icon}</div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: '#e0e2ea', marginBottom: 8 }}>{selected.name}</div>
-          <div style={{ fontSize: 13, color: '#6b7591', lineHeight: 1.7, marginBottom: 14 }}>{selected.description}</div>
-          <div style={{ display: 'flex', gap: 6 }}>
-            <Pill color={BLUE}>ink!</Pill>
-            {selected.id !== 'custom' ? <Pill color={GOLD}>simulated</Pill> : <Pill color={GREEN}>real deploy</Pill>}
-          </div>
-        </div>
-        <div style={{ background: '#111520', border: '0.5px solid #1e2433', borderRadius: 12, padding: 22 }}>
-          {selected.id === 'custom' ? (
-            <>
-              <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 12, color: '#8891a8', marginBottom: 5 }}>WASM file *</div>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: '#0a0d13', border: `0.5px solid ${customWasm ? GREEN : '#1e2433'}`, borderRadius: 8, cursor: 'pointer' }}>
-                  <span style={{ fontSize: 13, color: customWasm ? GREEN : '#4a5266' }}>{customWasm ? '✓ WASM loaded' : '📁 Choose .wasm'}</span>
-                  <input type="file" accept=".wasm" onChange={handleWasm} style={{ display: 'none' }} />
-                </label>
-              </div>
-              <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 12, color: '#8891a8', marginBottom: 5 }}>ABI JSON (optional)</div>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: '#0a0d13', border: `0.5px solid ${customAbi ? GREEN : '#1e2433'}`, borderRadius: 8, cursor: 'pointer' }}>
-                  <span style={{ fontSize: 13, color: customAbi ? GREEN : '#4a5266' }}>{customAbi ? '✓ ABI loaded' : '📁 Choose .json'}</span>
-                  <input type="file" accept=".json" onChange={handleAbi} style={{ display: 'none' }} />
-                </label>
-              </div>
-              <Field label="Gas limit (refTime)" value={gasLimit} onChange={setGasLimit} type="number" mono />
-              <Field label="Endowment" value={endowment} onChange={setEndowment} type="number" mono hint="Value sent to the contract (planck)" />
-            </>
-          ) : (
-            <div style={{ fontSize: 13, color: '#6b7591', lineHeight: 1.7 }}>
-              This template runs as a guided walkthrough — PortalHouse doesn't bundle its compiled WASM.
-              For a real on-chain ink! deploy, use <span style={{ color: GOLD }}>Custom WASM</span>, or switch to the
-              <span style={{ color: BLUE }}> EVM</span> tab for a one-click Solidity deploy.
-            </div>
-          )}
-          <button onClick={deploy} disabled={deploying || !wallet} style={{ width: '100%', marginTop: 8, padding: '11px', borderRadius: 10, border: 'none', background: deploying || !wallet ? '#1a1f2e' : GOLD, color: deploying || !wallet ? '#4a5266' : '#0a0d13', fontSize: 14, fontWeight: 700, cursor: deploying || !wallet ? 'not-allowed' : 'pointer' }}>
-            {deploying ? 'Deploying…' : `Deploy ${selected.name}`}
-          </button>
-          {!wallet && <div style={{ fontSize: 11, color: RED, marginTop: 8 }}>Connect your Substrate wallet first</div>}
-        </div>
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+        <a href={`${SUB_EXPLORER}/extrinsics/${result.txHash}`} target="_blank" rel="noreferrer" style={{ ...btn('#111520', BLUE, '#1e2433'), textDecoration: 'none' }}>View tx ↗</a>
+        <button onClick={() => setResult(null)} style={btn(GOLD, '#0a0d13', GOLD)}>Deploy another</button>
       </div>
     </div>
   )
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-      {TEMPLATES.map(t => (
-        <div key={t.id} onClick={() => setSelected(t)} style={{ background: '#111520', border: '0.5px solid #1e2433', borderRadius: 12, padding: 18, cursor: 'pointer', transition: 'border-color 0.15s' }}
-          onMouseEnter={e => e.currentTarget.style.borderColor = GOLD + '55'} onMouseLeave={e => e.currentTarget.style.borderColor = '#1e2433'}>
-          <div style={{ fontSize: 26, marginBottom: 10 }}>{t.icon}</div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#e0e2ea', marginBottom: 6 }}>{t.name}</div>
-          <div style={{ fontSize: 12, color: '#6b7591', lineHeight: 1.6, marginBottom: 12 }}>{t.description}</div>
-          {t.id === 'custom' ? <Pill color={GREEN}>real deploy</Pill> : <Pill color={GOLD}>walkthrough</Pill>}
+    <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: 16, alignItems: 'start' }}>
+      <div style={{ background: '#0b0f17', border: `0.5px solid ${GOLD}22`, borderRadius: 12, overflow: 'hidden' }}>
+        <div style={{ display: 'flex', gap: 6, padding: 10, borderBottom: '0.5px solid #1e2433', background: '#120f08' }}>
+          <button onClick={() => { const a = new Abi(inkBundle); setTab('bundled'); setAbi(a); setBundle(inkBundle); setCtorIndex(0); setArgs(defaultArgs(a)) }} style={{ ...btn(tab === 'bundled' ? GOLD : 'transparent', tab === 'bundled' ? '#0a0d13' : '#8891a8', tab === 'bundled' ? GOLD : '#1e2433') }}>Bundled: Incrementer</button>
+          <button onClick={() => setTab('upload')} style={{ ...btn(tab === 'upload' ? GOLD : 'transparent', tab === 'upload' ? '#0a0d13' : '#8891a8', tab === 'upload' ? GOLD : '#1e2433') }}>Upload your own</button>
         </div>
-      ))}
+        {tab === 'bundled' ? (
+          <pre style={{ margin: 0, padding: 16, fontSize: 12, lineHeight: 1.6, color: '#9aa4bd', fontFamily: 'JetBrains Mono, monospace', overflowX: 'auto', maxHeight: 360 }}>{INK_SOURCE}</pre>
+        ) : (
+          <div style={{ padding: 20 }}>
+            <div style={{ fontSize: 13, color: '#8891a8', marginBottom: 12, lineHeight: 1.6 }}>
+              Upload a compiled ink! <code style={{ color: GOLD }}>.contract</code> bundle (metadata + code). Build yours with <code style={{ color: GOLD }}>cargo contract build</code>.
+            </div>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 14px', background: '#0a0d13', border: `0.5px solid ${abi && tab === 'upload' ? GREEN : '#1e2433'}`, borderRadius: 8, cursor: 'pointer' }}>
+              <span style={{ fontSize: 13, color: '#8891a8' }}>📁 Choose .contract / .json</span>
+              <input type="file" accept=".contract,.json" onChange={e => loadUpload(e.target.files[0])} style={{ display: 'none' }} />
+            </label>
+            {abi && <div style={{ marginTop: 12, fontSize: 12, color: '#6b7591' }}>Loaded: {bundle.contract?.name} v{bundle.contract?.version}</div>}
+          </div>
+        )}
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ background: '#111520', border: '0.5px solid #1e2433', borderRadius: 12, padding: 18 }}>
+          {constructors.length > 1 && (
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 12, color: '#8891a8', marginBottom: 5 }}>Constructor</div>
+              <select value={ctorIndex} onChange={e => { const i = Number(e.target.value); setCtorIndex(i); setArgs(defaultArgs(abi, i)) }} style={{ width: '100%', padding: '9px 12px', background: '#0a0d13', border: '0.5px solid #1e2433', borderRadius: 8, fontSize: 13, color: '#e0e2ea', outline: 'none' }}>
+                {constructors.map((c, i) => <option key={i} value={i}>{c.method}({(c.args || []).map(a => a.name).join(', ')})</option>)}
+              </select>
+            </div>
+          )}
+          {(ctor?.args || []).map(a => (
+            <Field key={a.name} label={`${a.name} (${a.type?.displayName || a.type?.type || 'value'})`} value={args[a.name] ?? ''} onChange={v => setArgs(p => ({ ...p, [a.name]: v }))} placeholder="" mono />
+          ))}
+          {(ctor?.args || []).length === 0 && <div style={{ fontSize: 12, color: '#6b7591', marginBottom: 10 }}>No constructor arguments.</div>}
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <Field label="Gas refTime" value={refTime} onChange={setRefTime} type="number" mono />
+            <Field label="Gas proofSize" value={proofSize} onChange={setProofSize} type="number" mono />
+          </div>
+          <Field label={`Endowment (${tokenSymbol})`} value={endowment} onChange={setEndowment} type="number" mono hint={`${tokenSymbol} transferred into the contract's account at creation. 0 is fine for most contracts; raise it only if the contract must hold a balance.`} />
+
+          <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+            <button onClick={estimateGas} disabled={estimating || !wallet} style={{ ...btn('#13203a', estimating || !wallet ? '#4a5266' : BLUE, BLUE + '44'), flexShrink: 0 }}>{estimating ? 'Estimating…' : 'Estimate gas'}</button>
+            <button onClick={deploy} disabled={deploying || !wallet || !abi} style={{ flex: 1, padding: '10px', borderRadius: 10, border: 'none', background: deploying || !wallet || !abi ? '#1a1f2e' : GOLD, color: deploying || !wallet || !abi ? '#4a5266' : '#0a0d13', fontSize: 14, fontWeight: 700, cursor: deploying || !wallet ? 'not-allowed' : 'pointer' }}>
+              {deploying ? 'Deploying…' : 'Deploy & Sign'}
+            </button>
+          </div>
+          {!wallet && <div style={{ fontSize: 11, color: RED, marginTop: 8 }}>Connect your Substrate wallet (sidebar) first</div>}
+          {msg && <div style={{ marginTop: 10, fontSize: 12, color: msg.type === 'ok' ? GREEN : RED, lineHeight: 1.5, wordBreak: 'break-word' }}>{msg.text}</div>}
+        </div>
+        <div style={{ background: '#120f08', border: `0.5px solid ${GOLD}22`, borderRadius: 12, padding: 14, fontSize: 11, color: '#6b7591', lineHeight: 1.6 }}>
+          Real deploy via <span style={{ color: GOLD, fontFamily: 'JetBrains Mono, monospace' }}>contracts.instantiateWithCode</span> (pallet-contracts, ink! 5). The code + contract storage are paid for by a storage deposit in {tokenSymbol}, on top of gas.
+        </div>
+      </div>
     </div>
   )
 }
 
 /* ─────────────────────────── page shell + mode toggle ─────────────────────────── */
 
-export function DeployContract({ wallet, api, getSigner, evmWallet, onConnectEvm }) {
+export function DeployContract({ wallet, api, getSigner, evmWallet, onConnectEvm, decimals = 14, tokenSymbol = 'tPOT' }) {
   const [mode, setMode] = useState('evm')
 
   const Tab = ({ id, accent, title, sub }) => {
     const on = mode === id
     return (
-      <button onClick={() => setMode(id)} style={{
-        flex: 1, textAlign: 'left', padding: '14px 18px', borderRadius: 12, cursor: 'pointer',
-        background: on ? accent + '14' : '#0e1117',
-        border: `0.5px solid ${on ? accent + '66' : '#1e2433'}`,
-        transition: 'all 0.15s',
-      }}>
+      <button onClick={() => setMode(id)} style={{ flex: 1, textAlign: 'left', padding: '14px 18px', borderRadius: 12, cursor: 'pointer', background: on ? accent + '14' : '#0e1117', border: `0.5px solid ${on ? accent + '66' : '#1e2433'}`, transition: 'all 0.15s' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-          <span style={{ width: 8, height: 8, borderRadius: 2, background: accent, display: 'inline-block' }} />
+          <span style={{ width: 8, height: 8, borderRadius: 2, background: accent }} />
           <span style={{ fontSize: 14, fontWeight: 700, color: on ? '#e8eaf0' : '#8891a8' }}>{title}</span>
         </div>
         <div style={{ fontSize: 12, color: on ? '#8891a8' : '#4a5266' }}>{sub}</div>
@@ -320,17 +361,15 @@ export function DeployContract({ wallet, api, getSigner, evmWallet, onConnectEvm
   return (
     <div className="fadein" style={{ padding: '28px 36px', maxWidth: 960, margin: '0 auto' }}>
       <div style={{ fontSize: 13, color: '#6b7591', marginBottom: 16, lineHeight: 1.6 }}>
-        Deploy a contract to the Portaldot V3 testnet — a one-click Solidity contract over EVM, or an ink! / WASM contract over the native Substrate pallet.
+        Deploy a real contract to the Portaldot V3 testnet — Solidity over EVM, or ink! / WASM over the native Substrate pallet. Both are signed by your wallet and inspectable on-chain.
       </div>
-
       <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
-        <Tab id="evm" accent={BLUE} title="EVM · Solidity" sub="One click, change one number, sign in MetaMask" />
-        <Tab id="substrate" accent={GOLD} title="Substrate · ink! / WASM" sub="Templates or your own compiled .wasm" />
+        <Tab id="evm" accent={BLUE} title="EVM · Solidity" sub="Set a value, sign in MetaMask" />
+        <Tab id="substrate" accent={GOLD} title="Substrate · ink! / WASM" sub="Bundled contract or upload your own .contract" />
       </div>
-
       {mode === 'evm'
         ? <EvmDeploy evmWallet={evmWallet} onConnectEvm={onConnectEvm} />
-        : <SubstrateDeploy wallet={wallet} api={api} getSigner={getSigner} />}
+        : <SubstrateDeploy wallet={wallet} api={api} getSigner={getSigner} decimals={decimals} tokenSymbol={tokenSymbol} />}
     </div>
   )
 }

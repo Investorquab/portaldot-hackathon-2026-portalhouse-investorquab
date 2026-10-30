@@ -82,7 +82,7 @@ export default function App() {
       case 'health': return <ChainHealth chainInfo={chain.chainInfo} bestBlock={chain.bestBlock} finalizedBlock={chain.finalizedBlock} validators={chain.validators} treasury={chain.treasury} recentBlocks={chain.recentBlocks} recentTxs={chain.recentTxs} />
       case 'txs': return <Transactions api={chain.api} recentTxs={chain.recentTxs} bestBlock={chain.bestBlock} />
       case 'tokens': return <TokenStudio wallet={wallet} api={chain.api} getSigner={chain.getSigner} />
-      case 'deploy': return <DeployContract wallet={wallet} api={chain.api} getSigner={chain.getSigner} evmWallet={evmWallet} onConnectEvm={connectEvm} />
+      case 'deploy': return <DeployContract wallet={wallet} api={chain.api} getSigner={chain.getSigner} evmWallet={evmWallet} onConnectEvm={connectEvm} decimals={chain.decimals} tokenSymbol={chain.tokenSymbol} />
       case 'bounty': return <BountyBoard wallet={wallet} api={chain.api} getSigner={chain.getSigner} decimals={chain.decimals} tokenSymbol={chain.tokenSymbol} />
       case 'ai': return <AiAssistant wallet={wallet} api={chain.api} recentTxs={chain.recentTxs} chainInfo={chain.chainInfo} bestBlock={chain.bestBlock} getSigner={chain.getSigner} decimals={chain.decimals} tokenSymbol={chain.tokenSymbol} />
       case 'profile': return <Profile wallet={wallet} api={chain.api} getBalance={chain.getBalance} getIdentity={chain.getIdentity} getSigner={chain.getSigner} />

@@ -53,7 +53,14 @@ export function BountyBoard({ wallet, api, getSigner, decimals = 14, tokenSymbol
   const [selected, setSelected] = useState(null)
   const [creating, setCreating] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [paying, setPaying] = useState(null)
   const [msg, setMsg] = useState(null)
+
+  const toPlanck = (amount) => {
+    const [w, f = ''] = String(amount).trim().split('.')
+    return BigInt((w || '0') + (f + '0'.repeat(decimals)).slice(0, decimals))
+  }
+  const extrinsicUrl = (hash) => `https://scanner-testnet-v3.portaldot.dev/extrinsics/${hash}`
 
   // Create form
   const [nTitle, setNTitle] = useState('')
@@ -79,27 +86,8 @@ export function BountyBoard({ wallet, api, getSigner, decimals = 14, tokenSymbol
     if (!wallet) return showMsg('err', 'Connect your wallet first')
     if (!nTitle || !nDesc || !nReward) return showMsg('err', 'Fill all required fields')
     setCreating(true)
-
-    // Try to lock POT via extrinsic (reserve balance)
-    try {
-      if (api && getSigner) {
-        const signer = await getSigner(wallet.address)
-        const [rWhole, rFrac = ''] = String(nReward).trim().split('.')
-        const rewardInPlanck = BigInt((rWhole || '0') + (rFrac + '0'.repeat(decimals)).slice(0, decimals))
-        await new Promise((resolve, reject) => {
-          api.tx.balances.transferKeepAlive(
-            '5EYCAe5ijiYfyeZ2JJCGq56LmPyNRAKzpG4QkoQkkQNB56ZY', // treasury-like address
-            rewardInPlanck
-          ).signAndSend(wallet.address, { signer }, ({ status, dispatchError }) => {
-            if (dispatchError) { reject(new Error('POT lock failed')); return }
-            if (status.isInBlock) resolve()
-          })
-        })
-      }
-    } catch {
-      // Continue even if lock fails - demo mode
-    }
-
+    // Posting records the bounty. The real on-chain action is paying the winner
+    // (a verifiable transfer), done from the detail view when you pick a winner.
     const newBounty = {
       id: Date.now(),
       title: nTitle, description: nDesc,
@@ -110,7 +98,7 @@ export function BountyBoard({ wallet, api, getSigner, decimals = 14, tokenSymbol
       status: 'open', submissions: [], winner: null,
     }
     setBounties(prev => [newBounty, ...prev])
-    showMsg('ok', `Bounty posted! ${nReward} ${tokenSymbol} locked.`)
+    showMsg('ok', `Bounty posted — reward ${nReward} ${tokenSymbol}, paid on-chain when you pick a winner.`)
     setNTitle(''); setNDesc(''); setNReward(''); setNDays('7')
     setView('list')
     setCreating(false)
@@ -119,19 +107,37 @@ export function BountyBoard({ wallet, api, getSigner, decimals = 14, tokenSymbol
   const submitWork = async (bountyId) => {
     if (!sName || !sAddr || !sDesc) return showMsg('err', 'Name, address and description are required')
     setSubmitting(true)
-    await new Promise(r => setTimeout(r, 800))
     const newSub = { id: Date.now(), name: sName, address: sAddr, twitter: sTwitter, email: sEmail, link: sLink, description: sDesc, time: Date.now() }
     setBounties(prev => prev.map(b => b.id !== bountyId ? b : { ...b, submissions: [...b.submissions, newSub] }))
     setSelected(prev => prev ? { ...prev, submissions: [...(prev.submissions || []), newSub] } : prev)
-    showMsg('ok', 'Submission recorded!')
+    showMsg('ok', 'Submission recorded')
     setSName(''); setSTwitter(''); setSEmail(''); setSLink(''); setSDesc('')
     setSubmitting(false)
   }
 
-  const selectWinner = (bountyId, sub) => {
-    setBounties(prev => prev.map(b => b.id !== bountyId ? b : { ...b, status: 'completed', winner: sub.address, winnerName: sub.name }))
-    setSelected(prev => prev ? { ...prev, status: 'completed', winner: sub.address, winnerName: sub.name } : prev)
-    showMsg('ok', `Winner selected: ${sub.name} — ${bounties.find(b=>b.id===bountyId)?.reward} POT will be sent!`)
+  // Pay the winner with a real on-chain transfer, signed by the bounty creator.
+  const selectWinner = async (bountyId, sub) => {
+    if (!wallet || !api) return showMsg('err', 'Connect your wallet first')
+    const b = bounties.find(x => x.id === bountyId)
+    if (!b) return
+    if (wallet.address !== b.poster) return showMsg('err', 'Only the bounty creator can pay the winner')
+    setPaying(sub.id)
+    try {
+      const signer = await getSigner(wallet.address)
+      const hash = await new Promise((resolve, reject) => {
+        api.tx.balances.transferKeepAlive(sub.address, toPlanck(b.reward))
+          .signAndSend(wallet.address, { signer }, ({ status, dispatchError, txHash }) => {
+            if (dispatchError) { reject(new Error(dispatchError.toString())); return }
+            if (status.isInBlock) resolve(txHash.toHex())
+          })
+      })
+      setBounties(prev => prev.map(x => x.id !== bountyId ? x : { ...x, status: 'completed', winner: sub.address, winnerName: sub.name, payoutTx: hash }))
+      setSelected(prev => prev ? { ...prev, status: 'completed', winner: sub.address, winnerName: sub.name, payoutTx: hash } : prev)
+      showMsg('ok', `Paid ${b.reward} ${tokenSymbol} to ${sub.name}`)
+    } catch (e) {
+      showMsg('err', 'Payment failed: ' + e.message)
+    }
+    setPaying(null)
   }
 
   // DETAIL
@@ -156,7 +162,7 @@ export function BountyBoard({ wallet, api, getSigner, decimals = 14, tokenSymbol
           <div style={{ display: 'flex', gap: 20, fontSize: 12, fontFamily: 'JetBrains Mono, monospace' }}>
             <span style={{ color: '#4a5266' }}>by <span style={{ color: '#c9a84c' }}>{b.posterName || short(b.poster)}</span></span>
             <span style={{ color: '#4a5266' }}>{b.submissions.length} submissions</span>
-            <span style={{ color: '#4caf82', fontWeight: 700, fontSize: 15 }}>{b.reward} POT</span>
+            <span style={{ color: '#4caf82', fontWeight: 700, fontSize: 15 }}>{b.reward} {tokenSymbol}</span>
           </div>
         </div>
 
@@ -164,7 +170,10 @@ export function BountyBoard({ wallet, api, getSigner, decimals = 14, tokenSymbol
           <div style={{ background: '#0d1f18', border: '0.5px solid #1d3d2a', borderRadius: 10, padding: 16, marginBottom: 12 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: '#4caf82', marginBottom: 6 }}>🏆 Winner: {b.winnerName || short(b.winner)}</div>
             <div style={{ fontSize: 12, fontFamily: 'JetBrains Mono, monospace', color: '#6b7591' }}>{b.winner}</div>
-            <div style={{ marginTop: 10, fontSize: 12, color: '#4caf82' }}>{b.reward} POT awarded</div>
+            <div style={{ marginTop: 10, fontSize: 12, color: '#4caf82' }}>
+              {b.reward} {tokenSymbol} paid
+              {b.payoutTx && <> · <a href={extrinsicUrl(b.payoutTx)} target="_blank" rel="noreferrer" style={{ color: '#5b8fe8' }}>view payout ↗</a></>}
+            </div>
           </div>
         )}
 
@@ -191,8 +200,8 @@ export function BountyBoard({ wallet, api, getSigner, decimals = 14, tokenSymbol
                     </div>
                   </div>
                   {isOwner && b.status === 'open' && (
-                    <button onClick={() => selectWinner(b.id, s)} style={{ padding: '5px 14px', background: '#0d1f18', border: '0.5px solid #1d3d2a', borderRadius: 6, fontSize: 12, fontWeight: 600, color: '#4caf82', cursor: 'pointer', fontFamily: 'Inter, sans-serif', flexShrink: 0 }}>
-                      Select Winner
+                    <button onClick={() => selectWinner(b.id, s)} disabled={paying === s.id} style={{ padding: '5px 14px', background: '#0d1f18', border: '0.5px solid #1d3d2a', borderRadius: 6, fontSize: 12, fontWeight: 600, color: paying === s.id ? '#4a5266' : '#4caf82', cursor: paying === s.id ? 'wait' : 'pointer', fontFamily: 'Inter, sans-serif', flexShrink: 0 }}>
+                      {paying === s.id ? 'Paying…' : `Pay ${b.reward} ${tokenSymbol}`}
                     </button>
                   )}
                 </div>
@@ -243,7 +252,7 @@ export function BountyBoard({ wallet, api, getSigner, decimals = 14, tokenSymbol
       <div style={{ background: '#111520', border: '0.5px solid #1e2433', borderRadius: 10, padding: 24 }}>
         <div style={{ fontSize: 15, fontWeight: 700, color: '#e0e2ea', marginBottom: 20 }}>Post New Bounty</div>
         <Msg />
-        {[['Title *', nTitle, setNTitle, 'What do you need done?', 'text'], ['POT Reward *', nReward, setNReward, '100', 'number']].map(([l, v, s, p, t]) => (
+        {[['Title *', nTitle, setNTitle, 'What do you need done?', 'text'], [`${tokenSymbol} Reward *`, nReward, setNReward, '100', 'number']].map(([l, v, s, p, t]) => (
           <div key={l} style={{ marginBottom: 14 }}>
             <div style={{ fontSize: 12, color: '#8891a8', marginBottom: 5 }}>{l}</div>
             <input type={t} value={v} onChange={e => s(e.target.value)} placeholder={p} style={{ width: '100%', padding: '9px 12px', background: '#0a0d13', border: '0.5px solid #1e2433', borderRadius: 8, fontSize: 13, color: '#e0e2ea', outline: 'none' }} />
@@ -260,7 +269,7 @@ export function BountyBoard({ wallet, api, getSigner, decimals = 14, tokenSymbol
           </select>
         </div>
         <button onClick={createBounty} disabled={creating || !nTitle || !nDesc || !nReward} style={{ padding: '10px 24px', background: creating ? '#1a1f2e' : '#c9a84c', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, color: creating ? '#4a5266' : '#0a0d13', cursor: creating ? 'not-allowed' : 'pointer', fontFamily: 'Inter, sans-serif' }}>
-          {creating ? 'Posting...' : `Post Bounty — ${nReward || '0'} POT`}
+          {creating ? 'Posting...' : `Post Bounty — ${nReward || '0'} ${tokenSymbol}`}
         </button>
       </div>
     </div>
@@ -270,7 +279,7 @@ export function BountyBoard({ wallet, api, getSigner, decimals = 14, tokenSymbol
   return (
     <div className="fadein" style={{ padding: '32px 40px', maxWidth: 900, margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <div style={{ fontSize: 13, color: '#6b7591' }}>Post tasks with POT rewards — only you as creator can pick the winner</div>
+        <div style={{ fontSize: 13, color: '#6b7591' }}>Post tasks with {tokenSymbol} rewards — only you as creator can pay the winner (a real on-chain transfer)</div>
         <button onClick={() => setView('create')} style={{ padding: '8px 16px', background: '#c9a84c', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, color: '#0a0d13', cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>+ Post Bounty</button>
       </div>
       <Msg />
@@ -294,7 +303,7 @@ export function BountyBoard({ wallet, api, getSigner, decimals = 14, tokenSymbol
               </div>
               <div style={{ textAlign: 'right', flexShrink: 0 }}>
                 <div style={{ fontSize: 22, fontWeight: 700, color: '#c9a84c', fontFamily: 'JetBrains Mono, monospace' }}>{b.reward}</div>
-                <div style={{ fontSize: 11, color: '#4a5266' }}>POT</div>
+                <div style={{ fontSize: 11, color: '#4a5266' }}>{tokenSymbol}</div>
               </div>
             </div>
           </div>
