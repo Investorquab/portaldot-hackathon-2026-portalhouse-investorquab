@@ -2,10 +2,12 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { ApiPromise, WsProvider } from '@polkadot/api'
 import { formatBalance } from '@polkadot/util'
 
-export function useChain(rpcUrl = 'ws://127.0.0.1:9944') {
+export function useChain(rpcUrl = 'wss://test-node-v3.portaldot.dev') {
   const [api, setApi] = useState(null)
   const [status, setStatus] = useState('disconnected')
   const [chainInfo, setChainInfo] = useState(null)
+  const [decimals, setDecimals] = useState(14)
+  const [tokenSymbol, setTokenSymbol] = useState('tPOT')
   const [bestBlock, setBestBlock] = useState(null)
   const [finalizedBlock, setFinalizedBlock] = useState(null)
   const [validators, setValidators] = useState([])
@@ -35,8 +37,12 @@ export function useChain(rpcUrl = 'ws://127.0.0.1:9944') {
         newApi.rpc.system.name(),
         newApi.rpc.system.version(),
       ])
-      formatBalance.setDefaults({ decimals: 12, unit: 'POT' })
-      setChainInfo({ chain: chain.toString(), name: name.toString(), version: version.toString() })
+      const chainDec = newApi.registry.chainDecimals?.[0] ?? 12
+      const chainSym = newApi.registry.chainTokens?.[0] ?? 'POT'
+      formatBalance.setDefaults({ decimals: chainDec, unit: chainSym })
+      setDecimals(chainDec)
+      setTokenSymbol(chainSym)
+      setChainInfo({ chain: chain.toString(), name: name.toString(), version: version.toString(), specVersion: newApi.runtimeVersion?.specVersion?.toString?.() })
       const unsubHeads = await newApi.rpc.chain.subscribeNewHeads(async (header) => {
         const blockNum = header.number.toNumber()
         const blockHash = header.hash.toHex()
@@ -127,6 +133,7 @@ export function useChain(rpcUrl = 'ws://127.0.0.1:9944') {
   return {
     api: apiRef.current, status, chainInfo, bestBlock, finalizedBlock,
     validators, recentBlocks, recentTxs, getBalance, getIdentity, getSigner,
+    decimals, tokenSymbol,
     reconnect: connect,
   }
 }

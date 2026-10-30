@@ -104,7 +104,7 @@ export function TokenStudio({ wallet, api, getSigner: getSignerProp }) {
   // Create form
   const [name, setName] = useState('')
   const [symbol, setSymbol] = useState('')
-  const [decimals, setDecimals] = useState('12')
+  const [decimals, setDecimals] = useState('14')
   const [supply, setSupply] = useState('')
   const [minBalance, setMinBalance] = useState('1')
 
@@ -275,7 +275,7 @@ export function TokenStudio({ wallet, api, getSigner: getSignerProp }) {
             <div>
               <Field label="Token Name *" value={name} onChange={setName} placeholder="My Token" hint="Full name of your token" />
               <Field label="Symbol *" value={symbol} onChange={v => setSymbol(v.toUpperCase())} placeholder="MTK" hint="3-5 characters, uppercase" />
-              <Field label="Decimals" value={decimals} onChange={setDecimals} placeholder="12" type="number" hint="12 = same as POT" />
+              <Field label="Decimals" value={decimals} onChange={setDecimals} placeholder="14" type="number" hint="14 = same as tPOT" />
             </div>
             <div>
               <Field label="Initial Supply *" value={supply} onChange={setSupply} placeholder="1000000" type="number" hint="Total tokens to mint on creation" />

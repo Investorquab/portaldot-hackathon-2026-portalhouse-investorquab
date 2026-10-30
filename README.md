@@ -30,9 +30,11 @@ A full-stack React application connecting to the Portaldot node via WebSocket, w
 | AI Assistant | Natural language commands + profile analysis | balances, assets, identity |
 | My Profile | Balance, on-chain identity, staking position | system, identity, staking |
 
-## How POT is Used as Gas
+> Connects by default to the live **Portaldot V3 testnet** (`wss://test-node-v3.portaldot.dev`). Native token: **tPOT** (14 decimals), specVersion 3002.
 
-Every action that writes to the chain consumes real POT:
+## How tPOT is Used as Gas
+
+Every action that writes to the chain consumes real tPOT:
 - Token creation: `api.tx.utility.batchAll` (assets.create + setMetadata + mint)
 - POT transfer: `api.tx.balances.transferKeepAlive`
 - Identity: `api.tx.identity.setIdentity` (deposit + gas)
@@ -41,7 +43,7 @@ Every action that writes to the chain consumes real POT:
 
 ## AI Integration
 
-The AI Assistant uses Groq (Llama 3.3 70B — free API).
+The AI Assistant uses Groq (`openai/gpt-oss-120b` — free API tier).
 
 **Judges can test with a free Groq key:**
 1. Go to console.groq.com
@@ -56,11 +58,11 @@ The AI Assistant uses Groq (Llama 3.3 70B — free API).
 
 ## Tech Stack
 
-- **Blockchain:** Portaldot (Substrate, specVersion 1002)
+- **Blockchain:** Portaldot V3 testnet (Substrate, specVersion 3002, tPOT / 14 decimals)
 - **Frontend:** React 18 + Vite
-- **Chain connection:** @polkadot/api WebSocket
+- **Chain connection:** @polkadot/api WebSocket (`wss://test-node-v3.portaldot.dev`)
 - **Wallet:** @polkadot/extension-dapp + direct injectedWeb3
-- **AI:** Groq API (Llama 3.3 70B)
+- **AI:** Groq API (`openai/gpt-oss-120b`)
 - **Deployment:** Vercel
 
 ## How to Run
@@ -92,6 +94,7 @@ netsh interface portproxy add v4tov4 listenport=9944 listenaddress=127.0.0.1 con
 ## Roadmap
 
 ### Completed
+- Live connection to the Portaldot V3 public testnet (default network)
 - Chain Health Monitor with live subscriptions
 - Transaction Explorer with search and filters
 - Token Studio (create, mint, burn, send)
@@ -101,8 +104,8 @@ netsh interface portproxy add v4tov4 listenport=9944 listenaddress=127.0.0.1 con
 - My Profile with on-chain identity
 
 ### Next Phase
-- Real ink! contract integration (pending node upgrade to contracts API v9+)
-- Public testnet connection when RPC endpoint is available
+- Full ink! template deploys bundled with compiled WASM (custom WASM deploy is already live on V3)
+- EVM/PolkaVM contract deploys via the revive pallet
 - Staking interface with reward claiming
 - NFT Studio using Uniques pallet
 
@@ -120,22 +123,23 @@ MIT
 
 ## For Judges — Testing Guide
 
-### Option 1: Public Node (no setup needed)
+### Option 1: Portaldot V3 Testnet (default — no setup needed)
 1. Open https://portalhouse.vercel.app
-2. Select **Public Node** from the network dropdown in the topbar
-3. Connect your wallet (Portaldot or Polkadot.js extension)
-4. For POT: ask in Portaldot Discord with your address
+2. It connects to **Portaldot Testnet V3** automatically (selected in the network dropdown)
+3. Chain Health shows live blocks right away; Token Studio → Manage lists real on-chain assets
+4. Connect your wallet (Portaldot or Polkadot.js extension)
+5. For tPOT: ask in Portaldot Discord with your address
 
 ### Option 2: Local Node (full experience)
 1. Download node: github.com/portaldotVolunteer/Portaldot-node
 2. Run: `./portaldot_dev --dev --alice --force-authoring --rpc-external --ws-external --rpc-cors all`
 3. Open https://portalhouse.vercel.app → select **Local Node**
-4. Get POT: polkadot.js.org/apps → send from ALICE to your address
+4. Get tPOT: polkadot.js.org/apps → send from ALICE to your address
 
 ### AI Assistant
 1. Get free Groq key at console.groq.com (30 seconds, no credit card)
 2. Open AI Assistant → paste key when prompted
-3. Try: "send 5 POT to [address]" or "create a token called TEST with 1M supply"
+3. Try: "send 5 tPOT to [address]" or "create a token called TEST with 1M supply"
 
 ### Verified on-chain activity (builder wallet)
 Address: 5EHmLtMFjM93319YfvTf34Q8cLcN8wPScFUfz5bsQc9pn3hm

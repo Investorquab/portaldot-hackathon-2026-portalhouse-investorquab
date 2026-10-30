@@ -1,45 +1,54 @@
 import { useState, useRef, useEffect } from 'react'
 
 const GROQ_API = 'https://api.groq.com/openai/v1/chat/completions'
+const GROQ_MODEL = 'openai/gpt-oss-120b'
 
 const PORTALDOT_CONTEXT = `
 Portaldot is a Layer-0 blockchain built on Substrate (same tech as Polkadot).
 Mission: Enable cross-chain data transfer for physical industries.
-Native token: POT (12 decimals). Used as gas for all transactions.
+Native token on the V3 testnet: tPOT (14 decimals). Used as gas for all transactions.
 Website: portaldot.world | GitHub: github.com/portaldotVolunteer
 Docs: portaldot-dev.readthedocs.io
 Discord: discord.gg/portaldot
 
 Available pallets on the node:
-- balances: transfer POT, check balance
+- balances: transfer tPOT, check balance
 - assets: create tokens, mint, burn, transfer custom tokens
 - identity: set on-chain name, email, twitter, website
-- staking: stake POT to earn rewards
-- bounties: post tasks with POT rewards
-- vesting: create linear unlock schedules
-- uniques: NFTs
-- contracts: deploy ink! smart contracts
+- staking: stake tPOT to earn rewards
+- bounties: post tasks with tPOT rewards
+- uniques / nfts: NFTs
+- contracts: deploy ink! / WASM smart contracts
+- revive: EVM-compatible (PolkaVM) smart contracts
 
-Current node status: local dev node at ws://127.0.0.1:9944, specVersion 1002
-Contracts API: v5 (only supports ink! 3.x — ink! 4.x not yet supported, team working on upgrade)
+Current network: Portaldot V3 Test, live at wss://test-node-v3.portaldot.dev, specVersion 3002.
+EVM RPC: https://test-evm-rpc-v3.portaldot.dev
 
 PortalHouse is a dashboard for Portaldot built by Investorquab (quabnation).
 It provides: Chain Health, Transactions, Token Studio, Deploy Contract, Bounty Board, AI Assistant, My Profile.
-Live at: portaldot-playground.vercel.app
+Live at: portalhouse.vercel.app
 `
 
 const EXAMPLES = [
-  "Send 10 POT to 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+  "Send 10 tPOT to 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
   "Create a token called QUAB with 5 million supply",
   "What is Portaldot building?",
   "Explain what balances.transferKeepAlive means",
-  "How do I stake my POT?",
+  "How do I stake my tPOT?",
   "What pallets are available on the node?",
 ]
 
 function short(addr) {
   if (!addr) return '—'
   return addr.slice(0, 8) + '...' + addr.slice(-6)
+}
+
+// Convert a decimal token amount (e.g. "10.5") to integer planck units as BigInt,
+// precisely, without floating-point error. decimals defaults to 14 (tPOT on V3).
+function toPlanck(amount, decimals = 14) {
+  const [whole, frac = ''] = String(amount).trim().split('.')
+  const fracPadded = (frac + '0'.repeat(decimals)).slice(0, decimals)
+  return BigInt((whole || '0') + fracPadded)
 }
 
 function clean(text) {
@@ -84,9 +93,9 @@ function Msg({ msg, onExecute }) {
   )
 }
 
-export function AiAssistant({ wallet, api, recentTxs, chainInfo, bestBlock, getSigner }) {
+export function AiAssistant({ wallet, api, recentTxs, chainInfo, bestBlock, getSigner, decimals = 14, tokenSymbol = 'tPOT' }) {
   const [messages, setMessages] = useState([
-    { role: 'assistant', content: `Hi! I'm your Portaldot AI Assistant.\n\nI can answer questions about Portaldot AND execute transactions for you. Just tell me what you want to do:\n\n• "Send 10 POT to 5EHmLt..."\n• "Create a token called QUAB with 5 million supply"\n• "What is Portaldot building?"\n• "Explain my last transaction"\n\nWhat would you like to do?` }
+    { role: 'assistant', content: `Hi! I'm your Portaldot AI Assistant.\n\nI can answer questions about Portaldot AND execute transactions for you. Just tell me what you want to do:\n\n• "Send 10 tPOT to 5EHmLt..."\n• "Create a token called QUAB with 5 million supply"\n• "What is Portaldot building?"\n• "Explain my last transaction"\n\nWhat would you like to do?` }
   ])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -115,7 +124,7 @@ export function AiAssistant({ wallet, api, recentTxs, chainInfo, bestBlock, getS
       let tx
 
       if (action.type === 'transfer') {
-        tx = api.tx.balances.transferKeepAlive(action.to, BigInt(Math.floor(parseFloat(action.amount) * 1e12)))
+        tx = api.tx.balances.transferKeepAlive(action.to, toPlanck(action.amount, decimals))
       } else if (action.type === 'createToken') {
         const id = Math.floor(Math.random() * 9000) + 1000
         tx = api.tx.utility.batchAll([
@@ -144,7 +153,7 @@ export function AiAssistant({ wallet, api, recentTxs, chainInfo, bestBlock, getS
         })
       })
 
-      setMessages(prev => [...prev, { role: 'assistant', content: `Transaction confirmed on-chain! ${action.type === 'transfer' ? `Sent ${action.amount} POT to ${short(action.to)}.` : action.type === 'createToken' ? `Token ${action.name} created successfully.` : 'Done.'}` }])
+      setMessages(prev => [...prev, { role: 'assistant', content: `Transaction confirmed on-chain! ${action.type === 'transfer' ? `Sent ${action.amount} ${tokenSymbol} to ${short(action.to)}.` : action.type === 'createToken' ? `Token ${action.name} created successfully.` : 'Done.'}` }])
     } catch (err) {
       setMessages(prev => [...prev, { role: 'assistant', content: `Transaction failed: ${err.message}` }])
     }
@@ -181,14 +190,14 @@ ${context}
 CAPABILITIES:
 You can execute blockchain transactions by including an [ACTION:...] tag in your response.
 
-For sending POT: [ACTION:{"type":"transfer","to":"ADDRESS","amount":"AMOUNT","description":"Send X POT to ADDRESS"}]
+For sending tPOT: [ACTION:{"type":"transfer","to":"ADDRESS","amount":"AMOUNT","description":"Send X tPOT to ADDRESS"}]
 For creating token: [ACTION:{"type":"createToken","name":"NAME","symbol":"SYM","supply":"AMOUNT","description":"Create token NAME"}]
 For setting identity: [ACTION:{"type":"setIdentity","display":"NAME","email":"EMAIL","twitter":"@HANDLE","description":"Set identity to NAME"}]
 
 RULES:
-- If user asks to send POT or transfer, extract address and amount, include ACTION tag
-- If user asks to create a token, extract name and supply, include ACTION tag  
-- Always confirm details before action: "I'll send X POT to ADDRESS — click Sign & Execute below"
+- If user asks to send tPOT or transfer, extract address and amount, include ACTION tag
+- If user asks to create a token, extract name and supply, include ACTION tag
+- Always confirm details before action: "I'll send X tPOT to ADDRESS — click Sign & Execute below"
 - Answer Portaldot questions accurately using the knowledge above
 - Keep responses concise and clear, no markdown formatting
 - If asked about docs, link to portaldot-dev.readthedocs.io
@@ -198,7 +207,7 @@ RULES:
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
         body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
+          model: GROQ_MODEL,
           messages: [
             { role: 'system', content: systemPrompt },
             ...messages.filter(m => !m.loading && m.content).map(m => ({ role: m.role, content: m.content })),
@@ -235,7 +244,7 @@ RULES:
       const res = await fetch(GROQ_API, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
-        body: JSON.stringify({ model: 'llama-3.3-70b-versatile', messages: [{ role: 'user', content: prompt }], max_tokens: 300, temperature: 0.7 })
+        body: JSON.stringify({ model: GROQ_MODEL, messages: [{ role: 'user', content: prompt }], max_tokens: 300, temperature: 0.7 })
       })
       const data = await res.json()
       setAnalysis(clean(data.choices[0].message.content))
@@ -282,7 +291,7 @@ RULES:
           </div>
 
           <div style={{ display: 'flex', gap: 8 }}>
-            <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && !e.shiftKey && send()} placeholder='Ask anything or type a command like "send 5 POT to 5EHmLt..."' disabled={loading}
+            <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && !e.shiftKey && send()} placeholder='Ask anything or type a command like "send 5 tPOT to 5EHmLt..."' disabled={loading}
               style={{ flex: 1, padding: '10px 14px', background: '#111520', border: '0.5px solid #1e2433', borderRadius: 8, fontSize: 13, color: '#e0e2ea', outline: 'none', fontFamily: 'Inter, sans-serif' }}
               onFocus={e => e.target.style.borderColor='#c9a84c'} onBlur={e => e.target.style.borderColor='#1e2433'}
             />

@@ -113,8 +113,16 @@ export function DeployContract({ wallet, api, getSigner }) {
       let selector = '0x9bae9d5e'
       if (customAbi?.spec?.constructors?.[0]?.selector) selector = customAbi.spec.constructors[0].selector
 
+      // V3 pallet-contracts signature: (value, gasLimit: WeightV2, storageDepositLimit: Option, code, data, salt)
+      const gas = api.registry.createType('WeightV2', {
+        refTime: BigInt(gasLimit || '10000000000'),
+        proofSize: 5_000_000,
+      })
+      // Unique salt so re-deploying the same code doesn't collide
+      const salt = '0x' + Array.from({ length: 8 }, () => Math.floor(Math.random() * 256).toString(16).padStart(2, '0')).join('')
+
       await new Promise((resolve, reject) => {
-        api.tx.contracts.instantiateWithCode(endowment, gasLimit, wasmHex, selector, '0x00')
+        api.tx.contracts.instantiateWithCode(endowment, gas, null, wasmHex, selector, salt)
           .signAndSend(wallet.address, { signer }, ({ status, events, dispatchError }) => {
             if (dispatchError) { reject(new Error(dispatchError.toString())); return }
             if (status.isInBlock) {
@@ -251,7 +259,7 @@ export function DeployContract({ wallet, api, getSigner }) {
       </div>
       <div style={{ padding: '12px 16px', background: '#111520', border: '0.5px solid #1e2433', borderRadius: 8, fontSize: 12, color: '#4a5266', lineHeight: 1.7 }}>
         <span style={{ color: '#8891a8', fontWeight: 600 }}>Note: </span>
-        Templates use simulated deployment on the local dev node. For custom contracts, compile with <span style={{ fontFamily: 'JetBrains Mono, monospace', color: '#c9a84c' }}>cargo contract build</span> then upload the .wasm and .json files.
+        Templates show a simulated deploy for walkthroughs. <span style={{ color: '#8891a8' }}>Custom Contract does a real on-chain deploy</span> via <span style={{ fontFamily: 'JetBrains Mono, monospace', color: '#c9a84c' }}>contracts.instantiateWithCode</span> on the Portaldot V3 testnet — compile with <span style={{ fontFamily: 'JetBrains Mono, monospace', color: '#c9a84c' }}>cargo contract build</span> then upload the .wasm and .json files. (V3 also supports EVM/PolkaVM contracts via the revive pallet.)
       </div>
     </div>
   )

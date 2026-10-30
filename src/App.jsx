@@ -11,8 +11,8 @@ import { DeployContract } from './pages/DeployContract'
 import './styles/global.css'
 
 const NETWORKS = [
+  { label: 'Portaldot Testnet V3', value: 'wss://test-node-v3.portaldot.dev' },
   { label: 'Local Node (127.0.0.1:9944)', value: 'ws://127.0.0.1:9944' },
-  { label: 'Public Node', value: 'wss://drip-backend-production-8d86.up.railway.app/node' },
 ]
 
 function ComingSoon({ title }) {
@@ -28,7 +28,7 @@ function ComingSoon({ title }) {
 export default function App() {
   const [activePage, setActivePage] = useState('health')
   const [wallet, setWallet] = useState(null)
-  const [rpc, setRpc] = useState('ws://127.0.0.1:9944')
+  const [rpc, setRpc] = useState('wss://test-node-v3.portaldot.dev')
   const chain = useChain(rpc)
 
   const connectWallet = async () => {
@@ -53,7 +53,7 @@ export default function App() {
         if (!addr) return
         address = addr.trim(); name = 'Manual'
       }
-      let balance = '0 POT'
+      let balance = `0 ${chain.tokenSymbol || 'tPOT'}`
       try { const bal = await chain.getBalance(address); if (bal) balance = bal.free } catch {}
       setWallet({ address, name, balance })
     } catch (err) { alert('Could not connect: ' + err.message) }
@@ -65,8 +65,8 @@ export default function App() {
       case 'txs': return <Transactions api={chain.api} recentTxs={chain.recentTxs} bestBlock={chain.bestBlock} />
       case 'tokens': return <TokenStudio wallet={wallet} api={chain.api} getSigner={chain.getSigner} />
       case 'deploy': return <DeployContract wallet={wallet} api={chain.api} getSigner={chain.getSigner} />
-      case 'bounty': return <BountyBoard wallet={wallet} api={chain.api} getSigner={chain.getSigner} />
-      case 'ai': return <AiAssistant wallet={wallet} api={chain.api} recentTxs={chain.recentTxs} chainInfo={chain.chainInfo} bestBlock={chain.bestBlock} getSigner={chain.getSigner} />
+      case 'bounty': return <BountyBoard wallet={wallet} api={chain.api} getSigner={chain.getSigner} decimals={chain.decimals} tokenSymbol={chain.tokenSymbol} />
+      case 'ai': return <AiAssistant wallet={wallet} api={chain.api} recentTxs={chain.recentTxs} chainInfo={chain.chainInfo} bestBlock={chain.bestBlock} getSigner={chain.getSigner} decimals={chain.decimals} tokenSymbol={chain.tokenSymbol} />
       case 'profile': return <Profile wallet={wallet} api={chain.api} getBalance={chain.getBalance} getIdentity={chain.getIdentity} getSigner={chain.getSigner} />
       default: return <ComingSoon title={activePage} />
     }
@@ -79,7 +79,7 @@ export default function App() {
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-      <Sidebar active={activePage} setActive={setActivePage} status={chain.status} wallet={wallet} onConnectWallet={connectWallet} />
+      <Sidebar active={activePage} setActive={setActivePage} status={chain.status} wallet={wallet} onConnectWallet={connectWallet} chainInfo={chain.chainInfo} />
       <main style={{ flex: 1, overflowY: 'auto', background: '#0e1117' }}>
         <div style={{ position: 'sticky', top: 0, zIndex: 10, padding: '12px 24px', background: '#0e1117', borderBottom: '0.5px solid #1e2433', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>

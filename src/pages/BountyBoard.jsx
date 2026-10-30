@@ -45,7 +45,7 @@ function badge(b) {
     : { label: 'Open', color: '#5b8fe8', bg: '#0d1525', border: '#1a2f50' }
 }
 
-export function BountyBoard({ wallet, api, getSigner }) {
+export function BountyBoard({ wallet, api, getSigner, decimals = 14, tokenSymbol = 'tPOT' }) {
   const [bounties, setBounties] = useState(() => {
     try { const s = localStorage.getItem('ph_bounties'); return s ? JSON.parse(s) : SAMPLE_BOUNTIES } catch { return SAMPLE_BOUNTIES }
   })
@@ -84,7 +84,8 @@ export function BountyBoard({ wallet, api, getSigner }) {
     try {
       if (api && getSigner) {
         const signer = await getSigner(wallet.address)
-        const rewardInPlanck = BigInt(Math.floor(parseFloat(nReward) * 1e12))
+        const [rWhole, rFrac = ''] = String(nReward).trim().split('.')
+        const rewardInPlanck = BigInt((rWhole || '0') + (rFrac + '0'.repeat(decimals)).slice(0, decimals))
         await new Promise((resolve, reject) => {
           api.tx.balances.transferKeepAlive(
             '5EYCAe5ijiYfyeZ2JJCGq56LmPyNRAKzpG4QkoQkkQNB56ZY', // treasury-like address
@@ -109,7 +110,7 @@ export function BountyBoard({ wallet, api, getSigner }) {
       status: 'open', submissions: [], winner: null,
     }
     setBounties(prev => [newBounty, ...prev])
-    showMsg('ok', `Bounty posted! ${nReward} POT locked.`)
+    showMsg('ok', `Bounty posted! ${nReward} ${tokenSymbol} locked.`)
     setNTitle(''); setNDesc(''); setNReward(''); setNDays('7')
     setView('list')
     setCreating(false)

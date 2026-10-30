@@ -33,7 +33,7 @@ const NAV = [
   },
 ]
 
-export function Sidebar({ active, setActive, status, wallet, onConnectWallet }) {
+export function Sidebar({ active, setActive, status, wallet, onConnectWallet, chainInfo }) {
   const dotColor = status === 'connected' ? '#4caf82' : status === 'connecting' ? '#c9a84c' : '#e05c5c'
 
   return (
@@ -93,7 +93,7 @@ export function Sidebar({ active, setActive, status, wallet, onConnectWallet }) 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
           <span style={{ width: 6, height: 6, borderRadius: '50%', background: dotColor, display: 'inline-block', flexShrink: 0, ...(status === 'connected' ? { animation: 'pulse 2s infinite' } : {}) }} />
           <span style={{ fontSize: 11, fontFamily: 'JetBrains Mono, monospace', color: '#4a5266', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {status === 'connected' ? 'ws://127.0.0.1:9944' : status === 'connecting' ? 'Connecting...' : 'Node offline'}
+            {status === 'connected' ? (chainInfo?.chain || 'Connected') : status === 'connecting' ? 'Connecting...' : 'Node offline'}
           </span>
         </div>
 
