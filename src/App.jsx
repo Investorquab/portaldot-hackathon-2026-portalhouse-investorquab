@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useChain } from './hooks/useChain'
+import { discoverEvmWallets, connectEvm as evmConnect, ensurePortaldotChain } from './evm/portaldotEvm'
 import { Sidebar } from './components/Sidebar'
 import { ChainHealth } from './pages/ChainHealth'
 import { Profile } from './pages/Profile'
@@ -28,8 +29,25 @@ function ComingSoon({ title }) {
 export default function App() {
   const [activePage, setActivePage] = useState('health')
   const [wallet, setWallet] = useState(null)
+  const [evmWallet, setEvmWallet] = useState(null)
   const [rpc, setRpc] = useState('wss://test-node-v3.portaldot.dev')
   const chain = useChain(rpc)
+
+  const connectEvm = async () => {
+    try {
+      const wallets = await discoverEvmWallets()
+      if (!wallets.length) {
+        alert('No EVM wallet found. Install MetaMask (or another EVM wallet) and try again.')
+        return
+      }
+      const picked = wallets[0]
+      const { address, chainId, provider } = await evmConnect(picked.provider)
+      try { await ensurePortaldotChain(provider) } catch {}
+      setEvmWallet({ address, chainId, provider, name: picked.name })
+    } catch (err) {
+      alert('Could not connect EVM wallet: ' + (err?.message || err))
+    }
+  }
 
   const connectWallet = async () => {
     try {
@@ -64,7 +82,7 @@ export default function App() {
       case 'health': return <ChainHealth chainInfo={chain.chainInfo} bestBlock={chain.bestBlock} finalizedBlock={chain.finalizedBlock} validators={chain.validators} treasury={chain.treasury} recentBlocks={chain.recentBlocks} recentTxs={chain.recentTxs} />
       case 'txs': return <Transactions api={chain.api} recentTxs={chain.recentTxs} bestBlock={chain.bestBlock} />
       case 'tokens': return <TokenStudio wallet={wallet} api={chain.api} getSigner={chain.getSigner} />
-      case 'deploy': return <DeployContract wallet={wallet} api={chain.api} getSigner={chain.getSigner} />
+      case 'deploy': return <DeployContract wallet={wallet} api={chain.api} getSigner={chain.getSigner} evmWallet={evmWallet} onConnectEvm={connectEvm} />
       case 'bounty': return <BountyBoard wallet={wallet} api={chain.api} getSigner={chain.getSigner} decimals={chain.decimals} tokenSymbol={chain.tokenSymbol} />
       case 'ai': return <AiAssistant wallet={wallet} api={chain.api} recentTxs={chain.recentTxs} chainInfo={chain.chainInfo} bestBlock={chain.bestBlock} getSigner={chain.getSigner} decimals={chain.decimals} tokenSymbol={chain.tokenSymbol} />
       case 'profile': return <Profile wallet={wallet} api={chain.api} getBalance={chain.getBalance} getIdentity={chain.getIdentity} getSigner={chain.getSigner} />
@@ -79,7 +97,7 @@ export default function App() {
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-      <Sidebar active={activePage} setActive={setActivePage} status={chain.status} wallet={wallet} onConnectWallet={connectWallet} chainInfo={chain.chainInfo} />
+      <Sidebar active={activePage} setActive={setActivePage} status={chain.status} wallet={wallet} onConnectWallet={connectWallet} chainInfo={chain.chainInfo} evmWallet={evmWallet} onConnectEvm={connectEvm} />
       <main style={{ flex: 1, overflowY: 'auto', background: '#0e1117' }}>
         <div style={{ position: 'sticky', top: 0, zIndex: 10, padding: '12px 24px', background: '#0e1117', borderBottom: '0.5px solid #1e2433', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>

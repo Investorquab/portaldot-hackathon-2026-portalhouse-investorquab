@@ -33,7 +33,33 @@ const NAV = [
   },
 ]
 
-export function Sidebar({ active, setActive, status, wallet, onConnectWallet, chainInfo }) {
+function WalletRow({ label, accent, connected, primary, secondary, onConnect }) {
+  if (connected) {
+    return (
+      <div style={{ background: '#111520', border: '0.5px solid #1e2433', borderRadius: 8, padding: '7px 10px', marginTop: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 3 }}>
+          <span style={{ width: 5, height: 5, borderRadius: '50%', background: accent, display: 'inline-block' }} />
+          <span style={{ fontSize: 9, color: '#6b7591', letterSpacing: 0.4, textTransform: 'uppercase' }}>{label}</span>
+        </div>
+        <div style={{ fontSize: 11, fontFamily: 'JetBrains Mono, monospace', color: accent, overflow: 'hidden', textOverflow: 'ellipsis' }}>{primary}</div>
+        {secondary && <div style={{ fontSize: 10, color: '#8891a8', marginTop: 1 }}>{secondary}</div>}
+      </div>
+    )
+  }
+  return (
+    <button onClick={onConnect} style={{
+      width: '100%', padding: '7px', marginTop: 6, background: 'transparent',
+      border: `0.5px solid ${accent}44`, borderRadius: 8,
+      fontSize: 11, color: accent, cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontWeight: 500,
+      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+    }}>
+      <span style={{ width: 5, height: 5, borderRadius: '50%', border: `1px solid ${accent}`, display: 'inline-block' }} />
+      Connect {label}
+    </button>
+  )
+}
+
+export function Sidebar({ active, setActive, status, wallet, onConnectWallet, chainInfo, evmWallet, onConnectEvm }) {
   const dotColor = status === 'connected' ? '#4caf82' : status === 'connecting' ? '#c9a84c' : '#e05c5c'
 
   return (
@@ -97,27 +123,22 @@ export function Sidebar({ active, setActive, status, wallet, onConnectWallet, ch
           </span>
         </div>
 
-        {wallet ? (
-          <div style={{ background: '#111520', border: '0.5px solid #1e2433', borderRadius: 8, padding: '8px 10px' }}>
-            <div style={{ fontSize: 10, color: '#4a5266', marginBottom: 3 }}>Connected</div>
-            <div style={{ fontSize: 11, fontFamily: 'JetBrains Mono, monospace', color: '#c9a84c', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {wallet.address.slice(0, 8)}...{wallet.address.slice(-6)}
-            </div>
-            <div style={{ fontSize: 11, color: '#8891a8', marginTop: 2 }}>{wallet.balance}</div>
-          </div>
-        ) : (
-          <button
-            onClick={onConnectWallet}
-            style={{
-              width: '100%', padding: '8px', background: '#111520',
-              border: '0.5px solid #2a3050', borderRadius: 8,
-              fontSize: 12, color: '#c9a84c', cursor: 'pointer',
-              fontFamily: 'Inter, sans-serif', fontWeight: 500,
-            }}
-          >
-            Connect Wallet
-          </button>
-        )}
+        <WalletRow
+          label="Substrate"
+          accent="#c9a84c"
+          connected={!!wallet}
+          primary={wallet ? `${wallet.address.slice(0, 8)}…${wallet.address.slice(-6)}` : ''}
+          secondary={wallet ? wallet.balance : ''}
+          onConnect={onConnectWallet}
+        />
+        <WalletRow
+          label="EVM"
+          accent="#5b8fe8"
+          connected={!!evmWallet}
+          primary={evmWallet ? `${evmWallet.address.slice(0, 6)}…${evmWallet.address.slice(-4)}` : ''}
+          secondary={evmWallet ? (evmWallet.chainId === 420420777 ? 'Portaldot V3' : `Chain ${evmWallet.chainId}`) : ''}
+          onConnect={onConnectEvm}
+        />
       </div>
     </aside>
   )

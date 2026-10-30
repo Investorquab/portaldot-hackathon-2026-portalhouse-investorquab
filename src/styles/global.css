@@ -120,3 +120,11 @@ a { color: #c9a84c; text-decoration: none; }
 /* Fade in */
 @keyframes fadein { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
 .fadein { animation: fadein 0.2s ease; }
+
+/* Spinner */
+@keyframes spin { to { transform: rotate(360deg) } }
+.spin { animation: spin 0.8s linear infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .fadein, .spin, .pulse { animation: none; }
+}
